@@ -94,7 +94,21 @@
   </div>
 </aside>
 
-<video id="video-backdrop" src="assets/video/hero.mp4" muted loop playsinline preload="metadata" poster="assets/img/guest.jpg"></video>
+<!-- The one background video ("Video baru", in the engagement's two encodes):
+     the 9:16 cut wherever the backdrop stands upright (a phone held upright,
+     or the invitation column on a desktop), the 16:9 one otherwise. -->
+<video id="video-backdrop" muted loop playsinline preload="metadata">
+  <source src="assets/video/backdrop-portrait.mp4" media="(max-aspect-ratio: 1/1), (min-width: 1024px)" type="video/mp4">
+  <source src="assets/video/backdrop-landscape.mp4" type="video/mp4">
+</video>
+<!-- The still shown until it plays is each encode's first frame. poster is one
+     attribute and cannot follow a media query as <source> does, so it is set
+     here, next to the element, before the browser would fetch the wrong one. -->
+<script>
+  document.getElementById('video-backdrop').poster =
+    matchMedia('(max-aspect-ratio: 1/1), (min-width: 1024px)').matches
+      ? 'assets/img/backdrop-portrait.jpg' : 'assets/img/backdrop-landscape.jpg';
+</script>
 
 <!-- Menu — the engagement invitation's: our bare monogram, top right; a 45° turn
      of the mark opens a full-screen list. -->
