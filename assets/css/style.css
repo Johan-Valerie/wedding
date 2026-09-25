@@ -395,15 +395,15 @@ h3.serif{ font-size:27px; line-height:1.2; }
 }
 
 /* dear guest */
-/* No card and no scrim, by choice: ink text straight on the untouched
-   photo, set low so the couple's faces stay clear. The sky is pale, so
-   .light-top turns the monogram ink; the music button stays white, which
-   reads better on the gravel. */
+/* No card: white text set low over a dark foot (the groom/bride pages'
+   gradient), so the couple's faces stay clear and the photo stays bright. */
 #dear{ align-items:flex-end; }
-#dear .content{ padding:34px 26px 74px; max-width:330px; color:var(--ink); }
-#dear .hairline{ background:rgba(41,41,41,.3); }
+#dear .section-scrim{
+  background:linear-gradient(rgba(0,0,0,.18) 0%, rgba(0,0,0,.30) 38%, rgba(0,0,0,.90) 100%);
+}
+#dear .content{ padding:34px 26px 74px; max-width:330px; }
 #dear h2{ font-size:29px; margin-top:4px; }
-#dear .micro.muted{ margin-top:12px; font-size:9px; color:var(--ink-2); }
+#dear .micro.muted{ margin-top:12px; font-size:9px; }
 
 /* verse */
 .verse-text{ font-size:21px; line-height:1.65; margin-top:10px; }
