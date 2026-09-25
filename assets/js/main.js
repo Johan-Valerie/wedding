@@ -200,7 +200,7 @@
     var video = $('#video-backdrop');
     if (video) video.play().catch(function () {});
 
-    ['#sound-toggle', '#pager', '#quicknav'].forEach(function (s) {
+    ['#sound-toggle', '#pager', '#nav-toggle'].forEach(function (s) {
       var el = $(s); if (el) el.hidden = false;
     });
 
@@ -223,9 +223,66 @@
     $$('[data-aos]').forEach(function (el) { aosObserver.observe(el); });
   }
 
-  /* ── section pager + floating quicknav ───────────────────── */
+  /* ── menu (the engagement's): monogram button + full-screen list ── */
+  var navBtn = $('#nav-toggle');
+  var navMenu = $('#nav-menu');
+  function setNavOpen(open) {
+    if (!navBtn || !navMenu) return;
+    navBtn.classList.toggle('open', open);
+    navMenu.classList.toggle('open', open);
+    navBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (navBtn) navBtn.addEventListener('click', function () {
+    setNavOpen(!navBtn.classList.contains('open'));
+  });
+
+  /* The jump: pause snap, glide, and re-arm snap on ARRIVAL, not on a timer —
+     a fixed timer can fire mid-glide on a long jump, and mandatory snap then
+     drags the page back. If the glide stalls short (smooth-scroll tails can),
+     it is resumed. */
+  var navSettleWatch;
+  $$('#nav-menu a').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var target = $(a.getAttribute('href'));
+      setNavOpen(false);
+      if (!target) return;
+
+      var root = document.documentElement;
+      root.style.scrollSnapType = 'none';
+      target.scrollIntoView({ behavior: 'smooth' });
+      clearInterval(navSettleWatch);
+      var last = -1, still = 0, t0 = Date.now();
+      navSettleWatch = setInterval(function () {
+        var goal = Math.round(target.getBoundingClientRect().top + window.scrollY);
+        var y = Math.round(window.scrollY);
+        var stalled = y === last && ++still >= 3;
+        if (y !== last) { still = 0; last = y; }
+        if (Math.abs(y - goal) < 2 || Date.now() - t0 > 4000) {
+          clearInterval(navSettleWatch);
+          window.scrollTo(0, goal);
+          root.style.scrollSnapType = 'y mandatory';
+        } else if (stalled) {
+          still = 0;
+          window.scrollTo({ top: goal, behavior: 'smooth' });
+        }
+      }, 100);
+    });
+  });
+
+  /* ── section pager + light-page contrast ─────────────────── */
   var pager = $('#pager');
-  var quicknav = $('#quicknav');
+  /* Pages without a photo or the video behind them are white. */
+  function isLight(sec) {
+    return !!sec && !sec.classList.contains('photo-section') && !sec.classList.contains('window');
+  }
+  function sectionAt(sections, y) {
+    for (var i = 0; i < sections.length; i++) {
+      var r = sections[i].getBoundingClientRect();
+      if (r.top <= y && r.bottom > y) return sections[i];
+    }
+    return null;
+  }
   function onScroll() {
     var sections = $$('.child').filter(function (s) { return !s.hidden; });
     var mid = window.innerHeight / 2;
@@ -235,20 +292,14 @@
       if (r.top <= mid && r.bottom >= mid) current = i + 1;
     });
     if (pager) pager.textContent = current + '/' + sections.length;
-    if (quicknav) quicknav.classList.toggle('fade-up', opened && window.scrollY > 4);
+    /* the page under each button decides its colour: the monogram's centre
+       is 43px down, the music button's 41px up from the bottom */
+    if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43)));
+    if (soundBtn) soundBtn.classList.toggle('on-light', isLight(sectionAt(sections, window.innerHeight - 41)));
   }
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
   onScroll();
-
-  /* quicknav: pause snap during the jump (as the original does) */
-  if (quicknav) $$('a', quicknav).forEach(function (a) {
-    a.addEventListener('click', function () {
-      document.documentElement.style.scrollSnapType = 'none';
-      setTimeout(function () {
-        document.documentElement.style.scrollSnapType = 'y mandatory';
-      }, 1600);
-    });
-  });
 
   /* ── countdown ───────────────────────────────────────────── */
   var cd = { d: $('#cd-days'), h: $('#cd-hours'), m: $('#cd-mins'), s: $('#cd-secs') };
@@ -561,7 +612,7 @@
     var content = form && form.parentNode;
     if (content) {
       content.scrollTop = 0;
-      content.classList.toggle('on-step2', n === 2);   // clears the fixed quicknav
+      content.classList.toggle('on-step2', n === 2);   // clears the fixed music button + pager
     }
   }
   /* Rebuilt whenever the count changes. A field already on screen keeps what

@@ -236,17 +236,66 @@ h3.serif{ font-size:27px; line-height:1.2; }
   position:fixed; top:0; right:0; z-index:0;
   width:100%; height:var(--vh); object-fit:cover;
 }
-#sound-toggle{
-  position:fixed; z-index:120; top:calc(14px + env(safe-area-inset-top)); right:14px;
-  width:38px; height:38px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  background:rgba(255,255,255,.28); color:var(--white);
-  border:1px solid var(--hairline-light);
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-  cursor:pointer;
+/* ── menu: the engagement's. The button is our bare monogram — no frame,
+   no fill. Open/close is a 45° turn of the mark rather than a morph to an X. */
+.nav-toggle{
+  position:fixed; top:22px; right:22px;
+  z-index:140; width:42px; height:42px;
+  display:grid; place-items:center;
+  background:none; border:0; padding:0; cursor:pointer;
 }
-#sound-toggle.playing{ animation:soundSpin 6s linear infinite; }
-@keyframes soundSpin{ to{ transform:rotate(360deg); } }
+.nav-toggle > *{ grid-area:1/1; }
+.nav-mono{
+  width:31px; height:31px; object-fit:contain; display:block;
+  transform:rotate(0);
+  transition:transform .45s cubic-bezier(.4,0,.2,1), filter .35s ease;
+}
+.nav-toggle.open .nav-mono{ transform:rotate(45deg); }
+
+.nav-menu{
+  position:fixed; inset:0; z-index:130;
+  background:rgba(12,9,8,.94);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  opacity:0; visibility:hidden; transition:opacity .5s, visibility .5s;
+}
+.nav-menu.open{ opacity:1; visibility:visible; }
+.nav-menu ul{ list-style:none; margin:0; padding:0; text-align:center; }
+.nav-menu li{ margin:14px 0; }
+.nav-menu a{
+  font-family:var(--display); font-size:23px; font-weight:400;
+  color:var(--white); text-decoration:none;
+  transition:opacity .25s;
+}
+.nav-menu a:hover{ opacity:.6; }
+.nav-hint{
+  font-family:var(--serif-light); font-size:12px; font-weight:300;
+  color:rgba(255,255,255,.6);
+  margin:26px 0 12px;   /* the 12px is the engagement's default <p> margin; it centres the list */
+}
+
+/* ── music: the engagement's round button, bottom left ── */
+#sound-toggle{
+  position:fixed; left:20px; bottom:20px;
+  z-index:140; width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.314);
+  backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  border:0; padding:0; cursor:pointer;
+  transition:background .35s ease;
+}
+#sound-toggle svg{ width:19px; height:19px; fill:var(--white); transition:fill .35s ease; }
+
+/* The engagement's pages are all dark; the wedding's RSVP, details and
+   gallery pages are white, where a white mark would vanish. Over those
+   (main.js sets .on-light) the monogram and the music button turn ink —
+   but never while the dark menu is open behind them. */
+.nav-toggle.on-light:not(.open) .nav-mono{ filter:invert(.84); }
+#sound-toggle.on-light{ background:rgba(41,41,41,.12); }
+#sound-toggle.on-light svg{ fill:var(--ink); }
+.nav-menu.open ~ #sound-toggle{ background:rgba(255,255,255,.314); }
+.nav-menu.open ~ #sound-toggle svg{ fill:var(--white); }
+
 #pager{
   position:fixed; z-index:120; bottom:12px; right:12px;
   font-size:10px; letter-spacing:1px; color:var(--white);
@@ -254,22 +303,6 @@ h3.serif{ font-size:27px; line-height:1.2; }
   padding:4px 9px; border-radius:2px;
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
 }
-#quicknav{
-  position:fixed; z-index:120; bottom:14px; left:50%; transform:translateX(-50%);
-  display:flex; gap:2px; padding:4px;
-  background:rgba(255,255,255,.22); border:1px solid var(--hairline-light);
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-  border-radius:3px;
-  opacity:0; transform:translateX(-50%) translateY(20px);
-  transition:opacity .5s ease, transform .5s ease;
-  pointer-events:none;
-}
-#quicknav.fade-up{ opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
-#quicknav a{
-  font-size:10px; letter-spacing:1.4px; text-transform:uppercase; text-decoration:none;
-  color:var(--white); padding:7px 12px;
-}
-#quicknav a:hover{ background:rgba(255,255,255,.16); }
 
 /* ═══ COLUMN & SNAP SECTIONS ══════════════════════════════════ */
 #invitation{ position:relative; z-index:1; width:100%; }
@@ -410,7 +443,7 @@ h3.serif{ font-size:27px; line-height:1.2; }
 #rsvp .micro.center{ margin-top:12px; }
 /* a large party's name list can outgrow a short screen — scroll inside the page */
 #rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed quicknav */
+#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed music button + pager */
 #rsvp-guest-names .field-label:first-child{ margin-top:4px; }
 #rsvp-back{ width:100%; margin-top:10px; font-family:'Inter',sans-serif; }
 
@@ -460,7 +493,7 @@ h3.serif{ font-size:27px; line-height:1.2; }
 
 /* information step (dress code + adults-only note, before guest details) */
 #info .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-/* lift each step's button + note clear of the fixed quicknav / pager */
+/* lift each step's button + note clear of the fixed music button / pager */
 #info .content, #details .content{ padding-bottom:80px; }
 #info h2{ margin-bottom:6px; }
 .info-card{
@@ -561,8 +594,8 @@ h3.serif{ font-size:27px; line-height:1.2; }
 
   #invitation{ margin-left:auto; width:var(--col-w); border-left:1px solid var(--hairline-light); }
   #video-backdrop{ width:var(--col-w); }
-  #quicknav{ left:auto; right:calc(var(--col-w)/2); transform:translateX(50%) translateY(20px); }
-  #quicknav.fade-up{ transform:translateX(50%) translateY(0); }
+  /* bottom left of the invitation column, not over the side panel's caption */
+  #sound-toggle{ left:calc(100vw - var(--col-w) + 20px); }
 }
 
 /* three event cards need ~710px at full size — trim them a touch earlier */
