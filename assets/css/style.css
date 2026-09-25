@@ -808,6 +808,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   width:auto; max-width:none; object-fit:cover;   /* height: see below */
   border-radius:2px; cursor:pointer; transition:opacity .3s;
   -webkit-touch-callout:none;   /* a long press must not offer "Save Image" */
+  -webkit-user-select:none; user-select:none;   /* the strip is dragged, never selected */
 }
 @media (hover:hover){ .marquee img:hover{ opacity:.82; } }
 .gallery-title{

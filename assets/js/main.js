@@ -910,57 +910,113 @@
       for (var i = from; i < to; i++) {
         var thumb = galleryImages[i].replace('.jpg', '-sm.webp');
         html += pass === 0
-          ? '<img src="' + thumb + '" alt="" loading="lazy" data-index="' + i + '" role="button" tabindex="0"' +
+          ? '<img src="' + thumb + '" alt="" loading="lazy" draggable="false" data-index="' + i + '" role="button" tabindex="0"' +
             ' aria-label="Open photo ' + (i + 1) + ' of ' + galleryImages.length + '">'
-          : '<img src="' + thumb + '" alt="" loading="lazy" data-index="' + i + '" aria-hidden="true" tabindex="-1">';
+          : '<img src="' + thumb + '" alt="" loading="lazy" draggable="false" data-index="' + i + '" aria-hidden="true" tabindex="-1">';
       }
     }
     track.innerHTML = html;
   }
 
-  /* Each strip drifts on its own by nudging scrollLeft (the engagement's
-     driftRow). Driving the real scroll position is what keeps it usable on
-     a phone: a swipe takes over at once, and the drift resumes a moment
-     after the finger leaves. It rests while the page is off screen. */
+  /* Each strip drifts on its own, and a swipe flings it. The strip follows
+     the finger, is let go at the speed it was thrown, faster either way,
+     and glides back into its own drift, with no pause in between. Holding
+     a finger still on it holds it. It is drawn by writing scrollLeft (as on
+     the engagement), so a trackpad or wheel still scrolls it natively and
+     is taken up the same way. It rests while the page is off screen. */
+  var FLING_EASE = 0.6;    // seconds for a fling to melt most of the way back into the drift
+  var FLING_MAX = 3500;    // px per second, the hardest throw that counts
   function driftRow(row, dir, pxPerSecond) {
+    var track = row.firstElementChild;
+    var base = (dir === 'left' ? 1 : -1) * pxPerSecond;   // scrollLeft px per second
+    var v = base;           // the strip's speed now; always easing back to base
+    var pos = 0;            // its position as a float: scrollLeft rounds, and a slow drift would stall
+    var period = 0;         // one copy of the photos wide, the distance it wraps by
+    var written = -1;       // the scrollLeft last written here, to spot a wheel's own scrolling
+    var last = 0, hovering = false, drag = null, justDragged = false;
     var realMouse = !!window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
-    var hovering = false, resumeAt = 0, last = 0;
-    var pos = 0;   // the drift's own position, kept as a float (see tick)
-    function halfway() { return row.scrollWidth / 2; }
-    /* the right-hand strip travels backwards, so it starts on the second copy */
-    function seed() {
-      if (!row.scrollWidth) return;
-      pos = dir === 'right' ? halfway() : 0;
-      row.scrollLeft = pos;
+
+    function clampV(x) { return Math.max(-FLING_MAX, Math.min(FLING_MAX, x)); }
+    /* the photos are laid down twice, so a position one copy along looks
+       the same: the strip wraps both ways without a visible jump */
+    function wrap(x) {
+      if (period <= 0) return x;
+      x = x % period;
+      return x < 0 ? x + period : x;
     }
-    seed();
-    window.addEventListener('load', seed);
-    function handOver() { resumeAt = performance.now() + 1600; }
-    ['touchstart', 'touchmove', 'touchend', 'wheel', 'pointerdown'].forEach(function (ev) {
-      row.addEventListener(ev, handOver, { passive: true });
+    function measure() {
+      var n = track.children.length / 2;
+      period = n ? track.children[n].offsetLeft - track.children[0].offsetLeft : 0;
+    }
+    measure();
+    $$('img', track).forEach(function (img) { img.addEventListener('load', measure); });
+    window.addEventListener('resize', measure);
+    function draw() { row.scrollLeft = pos; written = row.scrollLeft; }
+
+    /* A horizontal drag moves the strip; a vertical one stays the page's.
+       Set here rather than in the stylesheet, so a cached older script
+       keeps its native swiping. */
+    row.style.touchAction = 'pan-y';
+    row.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.pointerType === 'mouse') e.preventDefault();   // no image drag, no text selection
+      justDragged = false;
+      drag = { id: e.pointerId, x0: e.clientX, x: e.clientX, moved: false, samples: [[e.timeStamp, e.clientX]] };
     });
-    /* Hover-pause only with a real mouse: iOS fires mouseenter on a tap
-       and never the mouseleave, which would stop the drift for good. */
+    row.addEventListener('pointermove', function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (!drag.moved) {
+        if (Math.abs(e.clientX - drag.x0) <= 8) return;   // still a tap
+        drag.moved = true;
+        drag.x = e.clientX;
+        try { row.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      pos = wrap(pos - (e.clientX - drag.x));
+      drag.x = e.clientX;
+      draw();
+      drag.samples.push([e.timeStamp, e.clientX]);
+      while (drag.samples.length > 2 && e.timeStamp - drag.samples[0][0] > 100) drag.samples.shift();
+    });
+    function release(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var sm = drag.samples, a = sm[0], b = sm[sm.length - 1];
+      var span = (b[0] - a[0]) / 1000;
+      /* thrown at the speed of its last tenth of a second; a finger that
+         came to rest before lifting leaves the strip to start from still */
+      v = drag.moved && span > 0 && e.timeStamp - b[0] < 80 ? clampV(-(b[1] - a[1]) / span) : 0;
+      justDragged = drag.moved;
+      drag = null;
+    }
+    row.addEventListener('pointerup', release);
+    row.addEventListener('pointercancel', release);   // the page took a vertical swipe
+    /* a drag that ends on a photo must not open it */
+    row.addEventListener('click', function (e) {
+      if (justDragged) { e.preventDefault(); e.stopPropagation(); }
+      justDragged = false;
+    }, true);
+    /* With a real mouse the strip glides to a halt under the pointer, so a
+       photo can be clicked. Not on touch: iOS fires mouseenter on a tap and
+       never the mouseleave, which would stop the drift for good. */
     if (realMouse) {
       row.addEventListener('mouseenter', function () { hovering = true; });
       row.addEventListener('mouseleave', function () { hovering = false; });
     }
+
     function tick(now) {
       var dt = last ? Math.min((now - last) / 1000, 0.05) : 0;   // cap after a stall
       last = now;
-      var half = halfway();
-      var free = !hovering && now >= resumeAt && !document.hidden &&
-                 row.classList.contains('in-view');
-      if (half > 0 && free) {
-        /* accumulated as a float, then written: reading scrollLeft back each
-           frame loses the sub-pixel remainder and a drift this slow stalls */
-        pos += (dir === 'left' ? 1 : -1) * pxPerSecond * dt;
-        /* wrap on the side the strip travels towards */
-        if (dir === 'left') { if (pos >= half) pos -= half; }
-        else if (pos <= 0) pos += half;
-        row.scrollLeft = pos;
-      } else {
-        pos = row.scrollLeft;   // a finger is in charge: follow it
+      if (period > 0 && !drag && !document.hidden && row.classList.contains('in-view')) {
+        /* a wheel, a trackpad or the keyboard moved it: carry on from there,
+           at the wheel's speed (a jump, like focus scrolling, starts still) */
+        var seen = row.scrollLeft;
+        if (written >= 0 && Math.abs(seen - written) > 1.5) {
+          var d = seen - written;
+          v = Math.abs(d) < 120 && dt ? clampV(d / dt) : 0;
+          pos = seen;
+        }
+        v += ((hovering ? 0 : base) - v) * (1 - Math.exp(-dt / FLING_EASE));
+        pos = wrap(pos + v * dt);
+        draw();
       }
       requestAnimationFrame(tick);
     }
@@ -972,29 +1028,16 @@
     fillRow(rowB, 9, GALLERY_COUNT);
     driftRow(rowA.parentNode, 'left', 26);
     driftRow(rowB.parentNode, 'right', 22);
-    /* A tap opens the viewer, a swipe only scrolls. The listener sits on
-       each photo: iOS delivers taps to the element itself far more
+    /* A tap opens the viewer (a drag is caught in driftRow). The listener
+       sits on each photo: iOS delivers taps to the element itself far more
        reliably than to a delegating parent. */
-    $$('.marquee').forEach(function (row) {
-      var sx = 0, sy = 0, swiped = false;
-      row.addEventListener('touchstart', function (e) {
-        var t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiped = false;
-      }, { passive: true });
-      row.addEventListener('touchmove', function (e) {
-        var t = e.touches[0];
-        if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) swiped = true;
-      }, { passive: true });
-      $$('img', row).forEach(function (img) {
-        function open() { lbOpen(parseInt(img.getAttribute('data-index'), 10) || 0); }
-        img.addEventListener('click', function () {
-          if (swiped) { swiped = false; return; }
-          open();
-        });
-        img.addEventListener('keydown', function (e) {
-          if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-          e.preventDefault();   // Space would otherwise scroll the page
-          open();
-        });
+    $$('.marquee img').forEach(function (img) {
+      function open() { lbOpen(parseInt(img.getAttribute('data-index'), 10) || 0); }
+      img.addEventListener('click', open);
+      img.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        e.preventDefault();   // Space would otherwise scroll the page
+        open();
       });
     });
   }
