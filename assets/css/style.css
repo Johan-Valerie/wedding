@@ -78,6 +78,23 @@ html.shell #invitation{
 html.shell #invitation::-webkit-scrollbar{ display:none; }
 html.shell .child{ height:100%; }
 #invitation:focus{ outline:none; }   /* focused on open, so the keyboard scrolls it */
+/* iOS 26 Safari ignores theme-color. It colours its status bar and its
+   toolbar from the background of a fixed element touching that edge (at
+   least 80% wide and 3px tall, within ~4px of the edge), and only
+   otherwise from the page. #invitation is exactly such an element, and it
+   is transparent, which reads as white. So each edge gets a black strip,
+   stacked above everything but the intro and the photo viewer (both dark
+   themselves). 6px, black against the black bars, it reads as part of
+   them. iPhone and iPad only: -webkit-touch-callout exists nowhere else. */
+.edge-tint{ display:none; }
+@supports (-webkit-touch-callout:none){
+  .edge-tint{
+    display:block; position:fixed; left:0; right:0; height:6px;
+    background:#000; z-index:1001;
+  }
+  .edge-tint.top{ top:0; }
+  .edge-tint.bottom{ bottom:0; }
+}
 body::-webkit-scrollbar{ display:none; }
 body{ scrollbar-width:none; }
 img{ max-width:100%; display:block; }
