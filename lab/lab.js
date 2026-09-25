@@ -1,24 +1,57 @@
 /* LAB — see-through Safari bars (test copy). Runs after main.js.
-   ?bleed=0  plain: just the page scrolling under the bars
-   ?debug=1  a panel of screen measurements, for tuning */
+   ?mode=full   (default) pages as big as the screen, bars included
+   ?mode=blur   pages keep their size; a blurred copy reaches under the bars
+   ?mode=plain  (or ?bleed=0) nothing extra: the page just scrolls under them
+   ?t=54&b=54   override how far the bars reach (px), for tuning
+   ?debug=1     a panel of screen measurements */
 (function () {
   'use strict';
   var params = new URLSearchParams(location.search);
-  var BLEED = params.get('bleed') !== '0';
+  var MODE = params.get('mode') || (params.get('bleed') === '0' ? 'plain' : 'full');
+  if (['full', 'blur', 'plain'].indexOf(MODE) === -1) MODE = 'full';
   var DEBUG = params.get('debug') === '1';
-  var E = 140;                                   // px each page reaches past its own edges
+  var IOS = !!(window.CSS && CSS.supports && CSS.supports('-webkit-touch-callout', 'none'));
+  var E = 140;                                   // blur mode: px the copy reaches past each edge
 
+  var root = document.documentElement;
   var inv = document.getElementById('invitation');
   var video = document.getElementById('video-backdrop');
   var pages = [].slice.call(document.querySelectorAll('#invitation > .child'));
   if (!inv || !pages.length) return;
 
-  /* the page nearest the top of the screen */
+  /* ── full: how far the bars reach over the page ──
+     Safari 26's page runs the full screen height; the part it reports as
+     the window (innerHeight) is what the two bars leave free. Their split
+     is not reported, so each side gets half the difference plus a margin;
+     too much only means a little extra photo off the screen's edge. */
+  var T = 0, B = 0;
+  function measureBars() {
+    if (MODE !== 'full') return;
+    var land = matchMedia('(orientation: landscape)').matches;
+    var full = land ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    var each = IOS ? Math.min(140, Math.max(24, Math.ceil(Math.max(0, full - innerHeight) / 2) + 12)) : 0;
+    T = params.has('t') ? (parseInt(params.get('t'), 10) || 0) : each;
+    B = params.has('b') ? (parseInt(params.get('b'), 10) || 0) : each;
+    root.style.setProperty('--lab-t', T + 'px');
+    root.style.setProperty('--lab-b', B + 'px');
+  }
+  if (MODE === 'full') {
+    root.classList.add('lab-full');
+    pages.forEach(function (p) {
+      var m = document.createElement('i');
+      m.className = 'lab-snap';
+      m.setAttribute('aria-hidden', 'true');
+      p.appendChild(m);
+    });
+    measureBars();
+  }
+
+  /* the page whose visible band starts nearest the top of the window */
   function currentPage() {
     var best = null, bestD = Infinity;
     pages.forEach(function (p) {
       if (p.hidden) return;
-      var d = Math.abs(p.getBoundingClientRect().top);
+      var d = Math.abs(p.getBoundingClientRect().top + T);
       if (d < bestD) { bestD = d; best = p; }
     });
     return best;
@@ -31,8 +64,8 @@
     video.play().catch(function () {});
   }
 
-  /* ── bleed layers ── */
-  if (BLEED) {
+  /* ── blur: a blurred copy of each page, shown for the page at rest ── */
+  if (MODE === 'blur') {
     pages.forEach(function (p) {
       var layer = document.createElement('div');
       layer.className = 'bleed';
@@ -70,7 +103,7 @@
     var page = currentPage();
     carryVideo(page);
     pages.forEach(function (p) { p.classList.toggle('lab-current', p === page); });
-    if (BLEED) {
+    if (MODE === 'blur') {
       placeBleeds();
       if (shown && shown !== page && shown._bleed) shown._bleed.classList.remove('on');
       if (page && page._bleed) page._bleed.classList.add('on');
@@ -85,7 +118,11 @@
     if (DEBUG) renderDebug(currentPage());
   }
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', function () { clearTimeout(restTimer); restTimer = setTimeout(onRest, 180); });
+  window.addEventListener('resize', function () {
+    measureBars();
+    clearTimeout(restTimer);
+    restTimer = setTimeout(onRest, 180);
+  });
   onRest();
 
   /* ── ?debug=1 ── */
@@ -107,7 +144,7 @@
     }
     var vv = window.visualViewport;
     panel.textContent =
-      'LAB ' + (BLEED ? 'bleed' : 'plain') + '\n' +
+      'LAB ' + MODE + (IOS ? '  ios' : '') + '  bars t' + T + ' b' + B + '\n' +
       'screen ' + screen.width + 'x' + screen.height + '  dpr ' + devicePixelRatio + '\n' +
       'inner ' + innerWidth + 'x' + innerHeight + '  outerH ' + outerHeight + '\n' +
       'vv ' + (vv ? Math.round(vv.height) + ' @' + Math.round(vv.offsetTop) : '-') + '\n' +

@@ -7,6 +7,11 @@
    fixed at an edge: the document scrolls again (no app shell), the video
    lives inside the page on screen, and the closed menu is display:none
    (Safari samples even invisible fixed layers).
+
+   Modes (lab.js): full (default) — every page is taller than the screen by
+   the bars' height and snaps so that extra sits under the bars; blur — the
+   page keeps its size and a blurred copy of it reaches under the bars;
+   plain — nothing extra.
    ═══════════════════════════════════════════════════════════════ */
 
 /* main.js sets html.shell; keep the document scrolling instead, so main.js
@@ -15,7 +20,7 @@ html.shell, html.shell body{ height:auto !important; overflow:visible !important
 html.shell body{ overflow-x:hidden !important; }
 html.shell #invitation{
   position:relative !important; inset:auto !important;
-  overflow:clip !important;   /* the first and last pages' bleed never adds scroll room */
+  overflow:clip !important;   /* nothing past the first or last page adds scroll room */
 }
 html.shell .child{ height:var(--vh) !important; }
 
@@ -30,13 +35,32 @@ html.shell .child{ height:var(--vh) !important; }
 .nav-menu:not(.open){ display:none; }
 @starting-style{ .nav-menu.open{ opacity:0; } }
 
-/* ── bleed: the page's own photo continued under the bars ──────────
-   One layer per page, placed by lab.js from the page's top minus 140px
-   to its bottom plus 140px. Only the page at rest shows its layer, above
-   its neighbours and below its own content; it is a blurred copy of the
-   page's photo and shading, which is all the frosted bars let through
-   anyway, and the page's own framing is untouched. Hidden while
-   scrolling, so it never slides into view. */
+/* ── full: pages as big as the screen, bars included ─────────────
+   --lab-t / --lab-b (set by lab.js) are how far the status bar and the
+   toolbar reach over the page, plus a safety margin. Each page grows by
+   both, as padding, so its photo, video and shading fill the whole box
+   while its content keeps to the visible band in between. Snapping is
+   moved from the page's top edge to a marker --lab-t below it, so at rest
+   the page's top extra sits under the status bar and its bottom extra
+   under the toolbar. overflow:clip rather than hidden: a hidden box is a
+   scroll container, and would keep the marker from snapping the page. */
+:root{ --lab-t:0px; --lab-b:0px; }
+html.lab-full.shell .child{
+  height:calc(var(--vh) + var(--lab-t) + var(--lab-b)) !important;
+  padding-top:var(--lab-t); padding-bottom:var(--lab-b);
+  overflow:clip;
+  scroll-snap-align:none;
+}
+html.lab-full.shell .hero,
+html.lab-full.shell .person{
+  padding-top:calc(74px + var(--lab-t)); padding-bottom:calc(74px + var(--lab-b));
+}
+.lab-snap{
+  position:absolute; left:0; top:var(--lab-t); width:1px; height:1px;
+  scroll-snap-align:start; scroll-snap-stop:always; pointer-events:none;
+}
+
+/* ── blur: a blurred copy of the page reaching under the bars ────── */
 #invitation > .child{ z-index:1; }
 #invitation > .child.lab-current{ z-index:3; }
 .bleed{
