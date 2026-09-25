@@ -533,7 +533,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .card-date .yr{ font-size:12px; }
 .venue{ font-weight:600; font-size:14.5px; line-height:1.5; margin:0 0 4px; }
 .address{ font-weight:300; font-size:13px; line-height:1.5; color:rgba(255,255,255,.85); margin:0 0 16px; }
-.venue + .pill-row{ margin-top:12px; }   /* the cocktail has no room line */
+.event-card > :last-child{ margin-bottom:0; }
+.events-actions{ margin-top:30px; flex:none; }   /* the page's one pair of buttons */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
 /* The engagement's pill, sized down for a pair: one size in every layout,
    and both buttons the same width, so each card ends in a matched pair
@@ -554,15 +555,17 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #events.three .card-title{ font-size:24px; margin-bottom:10px; }
 #events.three .card-grid{ margin-bottom:10px; }
 #events.three .card-date .day{ font-size:32px; }
-#events.three .address{ margin-bottom:10px; }
-#events.three .venue + .pill-row{ margin-top:8px; }
 #events.three .event-divider{ height:22px; margin:8px 0; }
+#events.three .events-actions{ margin-top:24px; }
 /* Shorter screens — which is most phones once Safari's bars take their
-   share. Two events: shorter joining lines. Three events: a compact card
-   (venue and room on one line, a smaller date block and pills), with room
-   kept clear under the monogram and above the music button. */
+   share: shorter joining lines. */
 @media (max-height:780px){
   #events .event-divider{ height:32px; }
+}
+/* Below ~730px the three-event page no longer fits whole: a compact card
+   (venue and room on one line, a smaller date block), with room kept
+   clear under the monogram and above the music button. */
+@media (max-height:730px){
   #events.three .events-inner{ padding-top:64px; padding-bottom:72px; }
   #events.three .card-title{ font-size:21px; margin-bottom:6px; }
   #events.three .card-grid{ gap:10px; margin-bottom:6px; }
@@ -572,7 +575,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events.three .card-date .yr{ font-size:10px; }
   #events.three .venue, #events.three .address{ display:inline; font-size:13px; }
   #events.three .address::before{ content:"\00b7"; margin:0 7px; }
-  #events.three .pill-row, #events.three .venue + .pill-row{ margin-top:8px; }
+  #events.three .events-actions{ margin-top:18px; }
   #events.three .event-divider{ height:10px; margin:5px 0; }
 }
 .btn{
@@ -829,6 +832,6 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events .card-date .yr{ font-size:10px; }
   #events .venue, #events .address{ display:inline; font-size:13px; }
   #events .address::before{ content:"\00b7"; margin:0 7px; }
-  #events .pill-row, #events .venue + .pill-row{ margin-top:8px; }
+  #events .events-actions{ margin-top:18px; }
   #events .event-divider{ height:10px; margin:5px 0; }
 }

@@ -330,18 +330,29 @@
   setInterval(tick, 1000); tick();
 
   /* ── add-to-calendar (data-URI ICS, like the original) ───── */
-  function icsFor(ev) {
-    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
-      'UID:' + Math.random().toString(36).slice(2) + '@johanvalerie',
-      'SUMMARY:' + ev.title, 'DTSTART:' + ev.start, 'DTEND:' + ev.end,
-      'LOCATION:' + ev.loc, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    return 'data:text/calendar;charset=utf8;base64,' + btoa(unescape(encodeURIComponent(ics)));
+  /* One button for the page: data-calendar="all" is a single file holding
+     every event this guest is invited to (Holy Matrimony only with &hm=1),
+     which the phone offers to add in one go. A single key still works. */
+  function icsFor(list) {
+    var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Johan & Valerie//Wedding//EN'];
+    list.forEach(function (ev) {
+      lines.push('BEGIN:VEVENT',
+        'UID:' + Math.random().toString(36).slice(2) + '@johanvalerie', 'DTSTAMP:' + stamp,
+        'SUMMARY:' + ev.title, 'DTSTART:' + ev.start, 'DTEND:' + ev.end,
+        'LOCATION:' + ev.loc, 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    return 'data:text/calendar;charset=utf8;base64,' + btoa(unescape(encodeURIComponent(lines.join('\r\n'))));
   }
   $$('[data-calendar]').forEach(function (a) {
-    var ev = EVENTS[a.getAttribute('data-calendar')];
-    if (!ev) return;
-    a.setAttribute('href', icsFor(ev));
-    a.setAttribute('download', 'johan-valerie-' + a.getAttribute('data-calendar') + '.ics');
+    var key = a.getAttribute('data-calendar');
+    var keys = key !== 'all' ? [key]
+      : (params.get('hm') === '1' ? ['ceremony', 'cocktail', 'reception'] : ['cocktail', 'reception']);
+    var list = keys.map(function (k) { return EVENTS[k]; }).filter(Boolean);
+    if (!list.length) return;
+    a.setAttribute('href', icsFor(list));
+    a.setAttribute('download', 'johan-valerie-' + (key === 'all' ? 'wedding' : key) + '.ics');
   });
 
   /* ── RSVP stepper ────────────────────────────────────────── */

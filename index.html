@@ -208,9 +208,11 @@
   </section>
 
   <!-- 8 · EVENTS — the engagement's event page over the wedding's photo: a
-       title, the date between two ruled sides, venue and room, pill buttons,
-       and a hairline joining one event to the next. Holy Matrimony (and the
-       line after it) shows only with &hm=1, see main.js. -->
+       title, the date between two ruled sides, venue and room, and a hairline
+       joining one event to the next. One pair of buttons serves the page:
+       every event is at La Chapelle Bangkok, and the calendar file holds all
+       of the guest's events. Holy Matrimony (and the line after it) shows
+       only with &hm=1, see main.js. -->
   <section class="child photo-section events" id="events" style="background-image:url('assets/img/events.jpg')">
     <div class="section-scrim"></div>
     <div class="content events-inner">
@@ -223,10 +225,6 @@
         </div>
         <p class="venue">La Chapelle Bangkok</p>
         <p class="address">Jardin de Juliet</p>
-        <div class="pill-row">
-          <a class="pill pill-ghost" data-calendar="ceremony" href="#">ADD TO CALENDAR</a>
-          <a class="pill pill-ghost" href="https://maps.app.goo.gl/wJNkqQa7CohiGJSt9" target="_blank" rel="noopener">GOOGLE MAPS</a>
-        </div>
       </article>
       <div class="event-divider reanimate fade delay300ms" id="holmat-divider"></div>
       <article class="event-card reanimate fade delay400ms" id="event-cocktail">
@@ -237,10 +235,6 @@
           <div class="card-side"><i class="rule"></i><span>5:00 PM</span><i class="rule"></i></div>
         </div>
         <p class="venue">La Chapelle Bangkok</p>
-        <div class="pill-row">
-          <a class="pill pill-ghost" data-calendar="cocktail" href="#">ADD TO CALENDAR</a>
-          <a class="pill pill-ghost" href="https://maps.app.goo.gl/wJNkqQa7CohiGJSt9" target="_blank" rel="noopener">GOOGLE MAPS</a>
-        </div>
       </article>
       <div class="event-divider reanimate fade delay500ms"></div>
       <article class="event-card reanimate fade delay600ms" id="event-reception">
@@ -252,11 +246,11 @@
         </div>
         <p class="venue">La Chapelle Bangkok</p>
         <p class="address">Saint Hall</p>
-        <div class="pill-row">
-          <a class="pill pill-ghost" data-calendar="reception" href="#">ADD TO CALENDAR</a>
-          <a class="pill pill-ghost" href="https://maps.app.goo.gl/wJNkqQa7CohiGJSt9" target="_blank" rel="noopener">GOOGLE MAPS</a>
-        </div>
       </article>
+      <div class="pill-row events-actions reanimate fade delay700ms">
+        <a class="pill pill-ghost" data-calendar="all" href="#">ADD TO CALENDAR</a>
+        <a class="pill pill-ghost" href="https://maps.app.goo.gl/wJNkqQa7CohiGJSt9" target="_blank" rel="noopener">GOOGLE MAPS</a>
+      </div>
     </div>
   </section>
 
