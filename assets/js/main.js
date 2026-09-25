@@ -919,17 +919,19 @@
   }
 
   /* Each strip drifts on its own, and a swipe flings it. The strip follows
-     the finger, is let go at the speed it was thrown, faster either way,
-     and glides back into its own drift, with no pause in between. Holding
-     a finger still on it holds it. It is drawn by writing scrollLeft (as on
-     the engagement), so a trackpad or wheel still scrolls it natively and
-     is taken up the same way. It rests while the page is off screen. */
+     the finger, is let go at the speed it was thrown, and glides back down
+     to its drifting speed, with no pause in between. It then carries on
+     the way it was swiped: a strip never turns round against the guest's
+     last swipe. Holding a finger still on it holds it. It is drawn by
+     writing scrollLeft (as on the engagement), so a trackpad or wheel still
+     scrolls it natively and is taken up the same way. It rests while the
+     page is off screen. */
   var FLING_EASE = 0.6;    // seconds for a fling to melt most of the way back into the drift
   var FLING_MAX = 3500;    // px per second, the hardest throw that counts
   function driftRow(row, dir, pxPerSecond) {
     var track = row.firstElementChild;
-    var base = (dir === 'left' ? 1 : -1) * pxPerSecond;   // scrollLeft px per second
-    var v = base;           // the strip's speed now; always easing back to base
+    var heading = dir === 'left' ? 1 : -1;   // +1: photos travel left (scrollLeft grows)
+    var v = heading * pxPerSecond;           // speed now, scrollLeft px per second; eases back to the drift
     var pos = 0;            // its position as a float: scrollLeft rounds, and a slow drift would stall
     var period = 0;         // one copy of the photos wide, the distance it wraps by
     var written = -1;       // the scrollLeft last written here, to spot a wheel's own scrolling
@@ -961,7 +963,9 @@
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (e.pointerType === 'mouse') e.preventDefault();   // no image drag, no text selection
       justDragged = false;
-      drag = { id: e.pointerId, x0: e.clientX, x: e.clientX, moved: false, samples: [[e.timeStamp, e.clientX]] };
+      /* timed with performance.now(), not the event's timeStamp, whose clock
+         a touch event need not share with the rest of the page */
+      drag = { id: e.pointerId, x0: e.clientX, x: e.clientX, moved: false, samples: [[performance.now(), e.clientX]] };
     });
     row.addEventListener('pointermove', function (e) {
       if (!drag || e.pointerId !== drag.id) return;
@@ -974,8 +978,9 @@
       pos = wrap(pos - (e.clientX - drag.x));
       drag.x = e.clientX;
       draw();
-      drag.samples.push([e.timeStamp, e.clientX]);
-      while (drag.samples.length > 2 && e.timeStamp - drag.samples[0][0] > 100) drag.samples.shift();
+      var t = performance.now();
+      drag.samples.push([t, e.clientX]);
+      while (drag.samples.length > 2 && t - drag.samples[0][0] > 100) drag.samples.shift();
     });
     function release(e) {
       if (!drag || e.pointerId !== drag.id) return;
@@ -983,7 +988,9 @@
       var span = (b[0] - a[0]) / 1000;
       /* thrown at the speed of its last tenth of a second; a finger that
          came to rest before lifting leaves the strip to start from still */
-      v = drag.moved && span > 0 && e.timeStamp - b[0] < 80 ? clampV(-(b[1] - a[1]) / span) : 0;
+      v = drag.moved && span > 0 && performance.now() - b[0] < 80 ? clampV(-(b[1] - a[1]) / span) : 0;
+      /* and from now on it drifts the way the finger pushed it */
+      if (drag.moved && drag.x !== drag.x0) heading = drag.x < drag.x0 ? 1 : -1;
       justDragged = drag.moved;
       drag = null;
     }
@@ -1006,17 +1013,21 @@
       var dt = last ? Math.min((now - last) / 1000, 0.05) : 0;   // cap after a stall
       last = now;
       if (period > 0 && !drag && !document.hidden && row.classList.contains('in-view')) {
-        /* a wheel, a trackpad or the keyboard moved it: carry on from there,
-           at the wheel's speed (a jump, like focus scrolling, starts still) */
+        /* A wheel, a trackpad or the keyboard moved it: leave that frame to
+           them, and carry on from there at the wheel's speed and heading
+           (a jump, like focus scrolling, starts from still). */
         var seen = row.scrollLeft;
-        if (written >= 0 && Math.abs(seen - written) > 1.5) {
+        if (written >= 0 && Math.abs(seen - written) > 0.5) {
           var d = seen - written;
           v = Math.abs(d) < 120 && dt ? clampV(d / dt) : 0;
+          if (v) heading = v > 0 ? 1 : -1;
           pos = seen;
+          written = seen;
+        } else {
+          v += ((hovering ? 0 : heading * pxPerSecond) - v) * (1 - Math.exp(-dt / FLING_EASE));
+          pos = wrap(pos + v * dt);
+          draw();
         }
-        v += ((hovering ? 0 : base) - v) * (1 - Math.exp(-dt / FLING_EASE));
-        pos = wrap(pos + v * dt);
-        draw();
       }
       requestAnimationFrame(tick);
     }
