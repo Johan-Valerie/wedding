@@ -369,7 +369,7 @@
     });
     if (!list.length) {
       var empty = document.createElement('p');
-      empty.className = 'body muted';
+      empty.className = 'note';
       empty.textContent = 'Be the first to leave your blessing.';
       wishList.appendChild(empty);
     }

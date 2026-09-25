@@ -8,13 +8,14 @@
 <!-- the engagement invitation's tab icon: our V&J mark, a dedicated 64px image -->
 <link rel="icon" href="assets/img/favicon.png">
 
-<!-- Fonts: Instrument Serif (display), Inter (labels), Ovo (tracked accents), Pinyon Script (script).
-     The intro, cover and groom/bride pages are the engagement's: Playfair Display,
-     Cormorant italic, Poppins, Milton One Bold for the two cover names and Pinyon
-     Script for the groom/bride names (both self-hosted, see style.css). -->
+<!-- Fonts: the engagement invitation's set, so the two read as a pair.
+     Poppins for all running text, Playfair Display for labels and headings,
+     Cormorant italic for the soft lines and small notes; Milton One Bold (the
+     cover names) and Pinyon Script (the groom/bride names) are self-hosted,
+     see style.css. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Playfair+Display:wght@400;500;600&family=Poppins:wght@300;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Poppins:wght@300;400;500;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
 <!-- What the opening seconds need: the intro crest (shown 3.5s in), the cover
      photo behind the greeting, and the face the two names are set in. -->
 <link rel="preload" as="image" href="assets/img/monogram.webp" fetchpriority="high">
@@ -142,7 +143,7 @@
       <h2 class="serif-italic guest-name-slot">Our Beloved Guest</h2>
       <div class="hairline light"></div>
       <p class="body">With joy in our hearts, we warmly invite you to be part of<br>the beginning of our forever.</p>
-      <p class="micro muted">We apologize if there is any misspelling of name or title</p>
+      <p class="note">We apologize if there is any misspelling of name or title.</p>
     </div>
   </section>
 
@@ -150,7 +151,7 @@
   <section class="child photo-section" id="verse" style="background-image:url('assets/img/verse.jpg')">
     <div class="section-scrim dark"></div>
     <div class="content" data-aos="fade">
-      <p class="ovo light">MATTHEW 19 : 6</p>
+      <p class="eyebrow light">MATTHEW 19 : 6</p>
       <p class="serif-italic light verse-text">&ldquo;So they are no longer two, but one flesh.<br>Therefore what God has joined together,<br>let no one separate.&rdquo;</p>
     </div>
   </section>
@@ -185,7 +186,7 @@
   <section class="child photo-section" id="story" style="background-image:url('assets/img/story.jpg')">
     <div class="section-scrim dark"></div>
     <div class="content" data-aos="fade">
-      <p class="ovo light">OUR LOVE STORY</p>
+      <p class="eyebrow light">OUR LOVE STORY</p>
       <h2 class="serif light">A Story Written<br>Into Forever</h2>
       <p class="serif-italic light story-text">Placeholder for your story — how you met, the laughter, the journey, and the moment you both knew. A few short lines feel best here.</p>
     </div>
@@ -194,7 +195,7 @@
   <!-- 7 · FILM window over video -->
   <section class="child window" id="film">
     <div class="film-caption glass" data-aos="fade">
-      <p class="ovo">A MOMENT IN MOTION</p>
+      <p class="eyebrow">A MOMENT IN MOTION</p>
       <p class="micro muted">FILM WITH LOVE</p>
     </div>
   </section>
@@ -203,7 +204,7 @@
   <section class="child photo-section" id="events" style="background-image:url('assets/img/events.jpg')">
     <div class="section-scrim"></div>
     <div class="content" data-aos="fade">
-      <p class="ovo">SAVE THE DATE</p>
+      <p class="eyebrow">SAVE THE DATE</p>
       <div class="event-card glass" id="event-holmat">
         <h3 class="serif">Holy Matrimony</h3>
         <p class="micro">3 : 00 PM &mdash; 9 JANUARY 2027</p>
@@ -238,7 +239,7 @@
   <section class="child window" id="countdown">
     <div class="section-scrim dark"></div>
     <div class="content" data-aos="fade">
-      <p class="ovo light">ALMOST TIME FOR OUR CELEBRATION</p>
+      <p class="eyebrow light">ALMOST TIME FOR OUR CELEBRATION</p>
       <div class="count-grid light">
         <div class="count-cell"><span id="cd-days">0</span><label>Days</label></div>
         <div class="count-cell"><span id="cd-hours">0</span><label>Hours</label></div>
@@ -252,7 +253,7 @@
   <!-- 10 · RSVP -->
   <section class="child" id="rsvp">
     <div class="content" data-aos="fade">
-      <p class="ovo">RSVP</p>
+      <p class="eyebrow">RSVP</p>
       <h2 class="serif" id="rsvp-title">Kindly Confirm<br>Your Presence</h2>
       <form id="rsvp-form" autocomplete="off">
         <!-- step 1: attendance, party size, wishes -->
@@ -295,7 +296,7 @@
   <!-- 10a · INFORMATION (unlocks after an "attending" confirmation) -->
   <section class="child" id="info" hidden>
     <div class="content" data-aos="fade">
-      <p class="ovo">BEFORE THE CELEBRATION</p>
+      <p class="eyebrow">BEFORE THE CELEBRATION</p>
       <h2 class="serif">Good to Know</h2>
 
       <div class="info-card">
@@ -303,7 +304,7 @@
         <p class="body">Classy dress &mdash; black &amp; soft colours.</p>
         <figure class="dress-figure">
           <img src="assets/img/dress-code.png" alt="Dress code inspiration: a black suit, soft-colour gowns, and a smart neutral look" loading="lazy">
-          <figcaption class="dress-caption">A little inspiration for the day</figcaption>
+          <figcaption class="dress-caption note">A little inspiration for the day</figcaption>
         </figure>
       </div>
 
@@ -313,7 +314,7 @@
       </div>
 
       <button type="button" class="btn solid" id="info-continue">Continue to Guest Details</button>
-      <p class="micro muted center">One more short step to complete your RSVP</p>
+      <p class="note center">One more short step to complete your RSVP</p>
     </div>
   </section>
 
@@ -321,7 +322,7 @@
   <section class="child" id="details" hidden>
     <div class="content" data-aos="fade">
       <div id="details-form-wrap">
-        <p class="ovo">ONE LAST STEP</p>
+        <p class="eyebrow">ONE LAST STEP</p>
         <h2 class="serif">Guest Details</h2>
         <form id="details-form" autocomplete="off">
           <label class="field-label">Accommodation</label>
@@ -386,12 +387,12 @@
         </form>
       </div>
       <div id="details-done" hidden>
-        <p class="ovo">ALL SET</p>
+        <p class="eyebrow">ALL SET</p>
         <h2 class="serif">Thank You!</h2>
         <p class="serif-italic done-line">Your RSVP is complete.<br>We can&rsquo;t wait to celebrate with you.</p>
         <div class="hairline"></div>
         <p class="body" id="details-summary"></p>
-        <p class="micro muted">Need to change something? Just fill the form again with your link.</p>
+        <p class="note">Need to change something? Just fill the form again with your link.</p>
       </div>
     </div>
   </section>
@@ -400,7 +401,7 @@
   <section class="child window" id="wishes">
     <div class="section-scrim dark"></div>
     <div class="content" data-aos="fade">
-      <p class="ovo">WISHES</p>
+      <p class="eyebrow">WISHES</p>
       <h2 class="serif">Words of Blessing</h2>
       <div id="wish-list"></div>
       <div class="wish-nav">
@@ -413,7 +414,7 @@
   <!-- 12 · GALLERY -->
   <section class="child" id="gallery">
     <div class="content wide" data-aos="fade">
-      <p class="ovo">OUR MOMENTS</p>
+      <p class="eyebrow">OUR MOMENTS</p>
       <h2 class="serif">Johan &amp; Valerie</h2>
       <div class="swiper" id="gallery-swiper">
         <div class="swiper-wrapper">
@@ -421,7 +422,7 @@
         </div>
         <div class="swiper-pagination"></div>
       </div>
-      <p class="micro muted center">Tap image for preview</p>
+      <p class="note center">Tap image for preview</p>
     </div>
   </section>
 
