@@ -401,7 +401,9 @@ h3.serif{ font-size:27px; line-height:1.2; }
 #dear .section-scrim{
   background:linear-gradient(rgba(0,0,0,.18) 0%, rgba(0,0,0,.30) 38%, rgba(0,0,0,.90) 100%);
 }
-#dear .content{ padding:34px 26px 74px; max-width:330px; }
+/* 18% of the screen up from the bottom: just under the hem of Johan's
+   jacket on the phone crop, already into the dark part of the fade */
+#dear .content{ padding:34px 26px calc(var(--vh) * .18); max-width:330px; }
 #dear h2{ font-size:29px; margin-top:4px; }
 #dear .micro.muted{ margin-top:12px; font-size:9px; }
 
