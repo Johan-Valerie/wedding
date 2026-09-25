@@ -214,7 +214,7 @@
     var video = $('#video-backdrop');
     if (video) video.play().catch(function () {});
 
-    ['#sound-toggle', '#pager', '#nav-toggle'].forEach(function (s) {
+    ['#sound-toggle', '#nav-toggle'].forEach(function (s) {
       var el = $(s); if (el) el.hidden = false;
     });
 
@@ -284,8 +284,7 @@
     });
   });
 
-  /* ── section pager + light-page contrast ─────────────────── */
-  var pager = $('#pager');
+  /* ── light-page contrast for the menu and music buttons ──── */
   /* Pages without a photo or the video behind them are white. */
   function isLight(sec) {
     return !!sec && !sec.classList.contains('photo-section') && !sec.classList.contains('window');
@@ -299,13 +298,6 @@
   }
   function onScroll() {
     var sections = $$('.child').filter(function (s) { return !s.hidden; });
-    var mid = window.innerHeight / 2;
-    var current = 1;
-    sections.forEach(function (sec, i) {
-      var r = sec.getBoundingClientRect();
-      if (r.top <= mid && r.bottom >= mid) current = i + 1;
-    });
-    if (pager) pager.textContent = current + '/' + sections.length;
     /* the page under each button decides its colour: the monogram's centre
        is 43px down, the music button's 41px up from the bottom */
     if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43)));
@@ -626,7 +618,7 @@
     var content = form && form.parentNode;
     if (content) {
       content.scrollTop = 0;
-      content.classList.toggle('on-step2', n === 2);   // clears the fixed music button + pager
+      content.classList.toggle('on-step2', n === 2);   // clears the fixed music button
     }
   }
   /* Rebuilt whenever the count changes. A field already on screen keeps what

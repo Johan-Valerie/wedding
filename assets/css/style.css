@@ -298,14 +298,6 @@ h3.serif{ font-size:27px; line-height:1.2; }
 .nav-menu.open ~ #sound-toggle{ background:rgba(255,255,255,.314); }
 .nav-menu.open ~ #sound-toggle svg{ fill:var(--white); }
 
-#pager{
-  position:fixed; z-index:120; bottom:12px; right:12px;
-  font-size:10px; letter-spacing:1px; color:var(--white);
-  background:rgba(41,41,41,.45); border:1px solid var(--hairline-light);
-  padding:4px 9px; border-radius:2px;
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-}
-
 /* ═══ COLUMN & SNAP SECTIONS ══════════════════════════════════ */
 #invitation{ position:relative; z-index:1; width:100%; }
 .child{
@@ -485,7 +477,7 @@ h3.serif{ font-size:27px; line-height:1.2; }
 #rsvp .micro.center{ margin-top:12px; }
 /* a large party's name list can outgrow a short screen — scroll inside the page */
 #rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed music button + pager */
+#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed music button */
 #rsvp-guest-names .field-label:first-child{ margin-top:4px; }
 #rsvp-back{ width:100%; margin-top:10px; font-family:'Inter',sans-serif; }
 
@@ -535,7 +527,7 @@ h3.serif{ font-size:27px; line-height:1.2; }
 
 /* information step (dress code + adults-only note, before guest details) */
 #info .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-/* lift each step's button + note clear of the fixed music button / pager */
+/* lift each step's button + note clear of the fixed music button */
 #info .content, #details .content{ padding-bottom:80px; }
 #info h2{ margin-bottom:6px; }
 .info-card{
