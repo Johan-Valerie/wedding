@@ -395,13 +395,11 @@ h3.serif{ font-size:27px; line-height:1.2; }
 }
 
 /* dear guest */
-/* No card: ink text set low, where the photo fades to white, so the
-   couple's faces stay clear. The sky above is pale too, so .light-ui turns
-   the monogram and the music button ink here, as on the white pages. */
+/* No card and no scrim, by choice: ink text straight on the untouched
+   photo, set low so the couple's faces stay clear. The sky is pale, so
+   .light-top turns the monogram ink; the music button stays white, which
+   reads better on the gravel. */
 #dear{ align-items:flex-end; }
-#dear .section-scrim{
-  background:linear-gradient(rgba(255,255,255,0) 42%, rgba(255,255,255,.78) 64%, rgba(255,255,255,.88) 100%);
-}
 #dear .content{ padding:34px 26px 74px; max-width:330px; color:var(--ink); }
 #dear .hairline{ background:rgba(41,41,41,.3); }
 #dear h2{ font-size:29px; margin-top:4px; }

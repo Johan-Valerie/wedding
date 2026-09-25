@@ -285,11 +285,11 @@
   });
 
   /* ── light-page contrast for the menu and music buttons ──── */
-  /* Pages without a photo or the video behind them are white, and so is a
-     .light-ui photo page (pale sky above, faded to white below). */
-  function isLight(sec) {
+  /* Pages without a photo or the video behind them are white; a .light-top
+     photo page is pale only at the top, under the monogram. */
+  function isLight(sec, top) {
     if (!sec) return false;
-    if (sec.classList.contains('light-ui')) return true;
+    if (top && sec.classList.contains('light-top')) return true;
     return !sec.classList.contains('photo-section') && !sec.classList.contains('window');
   }
   function sectionAt(sections, y) {
@@ -303,7 +303,7 @@
     var sections = $$('.child').filter(function (s) { return !s.hidden; });
     /* the page under each button decides its colour: the monogram's centre
        is 43px down, the music button's 41px up from the bottom */
-    if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43)));
+    if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43), true));
     if (soundBtn) soundBtn.classList.toggle('on-light', isLight(sectionAt(sections, window.innerHeight - 41)));
   }
   window.addEventListener('scroll', onScroll, { passive: true });
