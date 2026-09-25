@@ -216,25 +216,40 @@
   <section class="child" id="rsvp">
     <div class="content" data-aos="fade">
       <p class="ovo">RSVP</p>
-      <h2 class="serif">Kindly Confirm<br>Your Presence</h2>
+      <h2 class="serif" id="rsvp-title">Kindly Confirm<br>Your Presence</h2>
       <form id="rsvp-form" autocomplete="off">
-        <label class="field-label" for="rsvp-name">Full Name</label>
-        <input id="rsvp-name" type="text" placeholder="Your name" maxlength="40" required>
-        <label class="field-label">Attendance</label>
-        <div class="radio-row">
-          <label class="radio"><input type="radio" name="attendance" value="yes" checked><span>Joyfully Attending</span></label>
-          <label class="radio"><input type="radio" name="attendance" value="no"><span>Regretfully Unable</span></label>
+        <!-- step 1: attendance, party size, wishes -->
+        <div id="rsvp-step1">
+          <!-- only for a visitor without a personal link: ?to= IS the guest's identity -->
+          <div id="rsvp-name-field">
+            <label class="field-label" for="rsvp-name">Full Name</label>
+            <input id="rsvp-name" type="text" placeholder="Your name" maxlength="80">
+          </div>
+          <label class="field-label">Attendance</label>
+          <div class="radio-row">
+            <label class="radio"><input type="radio" name="attendance" value="yes" checked><span>Joyfully Attending</span></label>
+            <label class="radio"><input type="radio" name="attendance" value="no"><span>Regretfully Unable</span></label>
+          </div>
+          <div id="rsvp-count-field">
+            <label class="field-label" id="guest-count-label" for="rsvp-guests">No of Guest</label>
+            <div class="stepper">
+              <button type="button" id="step-minus" aria-label="Fewer guests">&minus;</button>
+              <input id="rsvp-guests" type="number" value="1" min="1" max="2" readonly>
+              <button type="button" id="step-plus" aria-label="More guests">+</button>
+            </div>
+          </div>
+          <label class="field-label" for="rsvp-wishes">Wishes</label>
+          <textarea id="rsvp-wishes" rows="3" maxlength="500" placeholder="Share your blessings for us&hellip;"></textarea>
+          <button type="button" class="btn solid" id="rsvp-next">Next &mdash; Guest Names</button>
+          <button type="submit" class="btn solid" id="rsvp-send" hidden>Send Response</button>
         </div>
-        <label class="field-label" id="guest-count-label" for="rsvp-guests">No of Guest</label>
-        <div class="stepper">
-          <button type="button" id="step-minus" aria-label="Fewer guests">&minus;</button>
-          <input id="rsvp-guests" type="number" value="1" min="1" max="2" readonly>
-          <button type="button" id="step-plus" aria-label="More guests">+</button>
+        <!-- step 2: one name per guest, for the guest list and the hotel -->
+        <div id="rsvp-step2" hidden>
+          <div id="rsvp-guest-names"></div>
+          <button type="submit" class="btn solid" id="rsvp-confirm">Confirm Attendance</button>
+          <button type="button" class="btn ghost" id="rsvp-back">Back</button>
         </div>
-        <label class="field-label" for="rsvp-wishes">Wishes</label>
-        <textarea id="rsvp-wishes" rows="3" maxlength="500" placeholder="Share your blessings for us&hellip;"></textarea>
         <input type="text" name="website" id="rsvp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <button type="submit" class="btn solid">Confirm Attendance</button>
         <p class="micro muted center" id="rsvp-note">Kindly confirm before the celebration</p>
       </form>
     </div>

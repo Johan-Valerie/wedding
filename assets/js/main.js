@@ -41,8 +41,9 @@
     $$('.guest-name-slot').concat([$('#guest-name')]).forEach(function (el) {
       if (el) el.textContent = decoded;
     });
-    var nameInput = $('#rsvp-name');
-    if (nameInput) nameInput.value = decoded;
+    // ?to= IS the guest's identity — the name field is only for visitors without a link
+    var nameField = $('#rsvp-name-field');
+    if (nameField) nameField.hidden = true;
   }
   var maxGuests = parseInt(params.get('max'), 10);
   var guestsInput = $('#rsvp-guests');
@@ -317,11 +318,47 @@
   loadWishes();
 
   /* ── two-stage RSVP ──────────────────────────────────────── */
-  function postApi(fields) {
-    var body = new URLSearchParams();
-    Object.keys(fields).forEach(function (k) { body.append(k, fields[k]); });
-    return fetch(API_URL, { method: 'POST', body: body })
-      .then(function (r) { return r.json(); });
+  /* Posts don't make the guest wait for Apps Script, which takes 3–10s to
+     answer even a read: the guest is thanked as soon as the request has left
+     the device (~1.2s at most). The reply is still read when it lands — if the
+     sheet refused the answer (busy, an error) `on.refused` runs so the page
+     can say so and offer to send again; if the reply can't be read at all,
+     `on.unsure` runs. keepalive lets the request finish even if the page is
+     closed. The body is form fields, not JSON, because every version of the
+     backend reads form fields — a JSON body is invisible to the older one,
+     which would thank the guest and save nothing. */
+  function sendApi(fields, on) {
+    on = on || {};
+    var body = Object.keys(fields).map(function (k) {
+      var v = fields[k];
+      return encodeURIComponent(k) + '=' +
+             encodeURIComponent(Array.isArray(v) ? JSON.stringify(v) : v);
+    }).join('&');
+    var sent = fetch(API_URL, {
+      method: 'POST', keepalive: true, body: body,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }
+    });
+    return new Promise(function (resolve, reject) {
+      var done = false, t;
+      function finish(ok, err) {
+        if (done) return false;
+        done = true;
+        clearTimeout(t);
+        if (ok) resolve(); else reject(err);
+        return true;
+      }
+      t = setTimeout(function () { finish(true); }, 1200);
+      sent.then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok === false) {
+            if (!finish(false, new Error(d.error || 'refused')) && on.refused) on.refused(d.error);
+          } else {
+            finish(true);
+          }
+        }, function () {
+          if (!finish(false, new Error('unreachable')) && on.unsure) on.unsure();
+        });
+    });
   }
 
   var infoSection = $('#info');
@@ -442,41 +479,154 @@
   }
   if (nightsSel) nightsSel.addEventListener('change', updateNightsNote);
 
-  /* stage 1: attendance */
+  /* stage 1: attendance → (attending) one name per guest → confirm.
+     The invitation name from ?to= is the identity and signs the wish, so a
+     guest with a link never types their own name; the names asked for on the
+     second step go to the Guest List tab (and the hotel booking). */
   var form = $('#rsvp-form');
+  var step1 = $('#rsvp-step1'), step2 = $('#rsvp-step2');
+  var nextBtn = $('#rsvp-next'), sendBtn = $('#rsvp-send');
+  var confirmBtn = $('#rsvp-confirm'), backBtn = $('#rsvp-back');
+  var countField = $('#rsvp-count-field'), nameBox = $('#rsvp-guest-names');
+  var rsvpTitle = $('#rsvp-title');
+  var TITLE_STEP1 = rsvpTitle ? rsvpTitle.innerHTML : '';
+  var NOTE_STEP1 = 'Kindly confirm before the celebration';
+  var savedNames = [];      // names from an earlier answer, restored on a return visit
+  var touched = false;      // a guest already filling in keeps their form over a late restore
+  var answered = false;     // an answer went out; editing it re-arms the buttons
+  var SEND_LABEL = sendBtn ? sendBtn.textContent : '';
+  var CONFIRM_LABEL = confirmBtn ? confirmBtn.textContent : '';
+
+  /* After an answer is sent its button stays disabled, which on its own would
+     leave the guest stuck: a disabled default button also swallows Enter, and
+     a decline could never be re-sent. Any edit puts the buttons back. */
+  function resetButtons() {
+    answered = false;
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = SEND_LABEL; }
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = CONFIRM_LABEL; }
+    if (backBtn) backBtn.hidden = false;
+  }
+
+  function who() {
+    return guestKey || (($('#rsvp-name') && $('#rsvp-name').value) || '').trim();
+  }
+  function attendingYes() {
+    var r = form && form.querySelector('input[name=attendance]:checked');
+    return !r || r.value === 'yes';
+  }
+  function rsvpNote(msg) {
+    var note = $('#rsvp-note');
+    if (note) note.textContent = msg;
+  }
+  function syncAttendance() {
+    var yes = attendingYes();
+    if (countField) countField.hidden = !yes;
+    if (nextBtn) nextBtn.hidden = !yes;
+    if (sendBtn) sendBtn.hidden = yes;
+  }
+  function showStep(n) {
+    if (step1) step1.hidden = n !== 1;
+    if (step2) step2.hidden = n !== 2;
+    if (rsvpTitle) rsvpTitle.innerHTML = n === 1 ? TITLE_STEP1 : 'Who Is<br>Joining?';
+    var content = form && form.parentNode;
+    if (content) {
+      content.scrollTop = 0;
+      content.classList.toggle('on-step2', n === 2);   // clears the fixed quicknav
+    }
+  }
+  /* Rebuilt whenever the count changes. A field already on screen keeps what
+     is in it; new positions fall back to an earlier answer, then to the
+     invitation name ("Mr. A & Mrs. B" seeds two). */
+  function buildGuestFields(n) {
+    var typed = $$('.rsvp-guest', nameBox).map(function (el) { return el.value; });
+    var seed = who().split(/\s+&\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    nameBox.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var label = document.createElement('label');
+      label.className = 'field-label';
+      label.htmlFor = 'rsvp-guest-' + i;
+      label.textContent = 'Guest ' + (i + 1);
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'rsvp-guest-' + i;
+      input.className = 'rsvp-guest';
+      input.placeholder = 'Full name';
+      input.maxLength = 80;
+      input.value = typed[i] !== undefined ? typed[i] : (savedNames[i] || seed[i] || '');
+      nameBox.appendChild(label);
+      nameBox.appendChild(input);
+    }
+  }
+  function goNext() {
+    if (!who()) {
+      rsvpNote('Please fill in your name');
+      if ($('#rsvp-name')) $('#rsvp-name').focus();
+      return;
+    }
+    buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
+    showStep(2);
+    rsvpNote('Please enter each guest’s full name');
+  }
+
+  if (form) {
+    $$('input[name=attendance]', form).forEach(function (r) {
+      r.addEventListener('change', syncAttendance);
+    });
+    var edited = function () { touched = true; if (answered) resetButtons(); };
+    form.addEventListener('input', edited);
+    form.addEventListener('change', edited);
+    syncAttendance();
+  }
+  if (nextBtn) nextBtn.addEventListener('click', goNext);
+  if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(NOTE_STEP1); });
+
   if (form) form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var btn = $('button[type=submit]', form);
-    var name = ($('#rsvp-name').value || '').trim();
-    var text = ($('#rsvp-wishes').value || '').trim();
-    var attRadio = form.querySelector('input[name=attendance]:checked');
-    var att = attRadio ? attRadio.value : 'yes';
-    var pax = parseInt(guestsInput && guestsInput.value, 10) || 1;
-    if (!name) { $('#rsvp-name').focus(); return; }
     if ($('#rsvp-hp') && $('#rsvp-hp').value) return;
+    var yes = attendingYes();
+    // Enter pressed in a step-1 field while attending means "next", not "send"
+    if (yes && step2 && step2.hidden) { goNext(); return; }
+
+    var name = who();
+    if (!name) { rsvpNote('Please fill in your name'); return; }
+    var names = [];
+    if (yes) {
+      names = $$('.rsvp-guest', nameBox).map(function (el) { return el.value.trim(); });
+      if (!names.length) { rsvpNote('Please tell us who is joining'); return; }
+      if (names.some(function (n) { return !n; })) { rsvpNote('Please fill in every guest name'); return; }
+    }
+    var text = ($('#rsvp-wishes').value || '').trim();
+    var btn = yes ? confirmBtn : sendBtn;
 
     function afterOk() {
-      var note = $('#rsvp-note');
-      if (att === 'yes') {
+      answered = true;
+      savedNames = names;
+      if (yes) {
         if (btn) { btn.textContent = 'Confirmed ✓ — a few notes below'; btn.disabled = true; }
-        if (note) note.textContent = text
+        if (backBtn) backBtn.hidden = true;
+        rsvpNote(text
           ? 'Your wish will appear on the wall once approved'
-          : 'Please read the notes below, then complete your details';
+          : 'Please read the notes below, then complete your details');
         unlockInfo(true);
       } else {
         if (btn) { btn.textContent = 'Thank you — we’ll miss you!'; btn.disabled = true; }
-        if (note && text) note.textContent = 'Your wish will appear on the wall once approved';
+        rsvpNote(text ? 'Your wish will appear on the wall once approved' : '');
       }
     }
 
     if (API_URL) {
       if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
-      postApi({ action: 'rsvp', key: guestKey || name, name: name,
-                attending: att, pax: pax, wishes: text, hp: '' })
-        .then(function (d) {
-          if (d && d.ok) { afterOk(); loadWishes(); }
-          else throw new Error((d && d.error) || 'failed');
-        })
+      sendApi({ action: 'rsvp', key: name, name: name, attending: yes ? 'yes' : 'no',
+                pax: yes ? names.length : 0, guests: names, wishes: text }, {
+        refused: function () {
+          resetButtons();
+          rsvpNote('Sorry — that didn’t save. Please send it again.');
+        },
+        unsure: function () {
+          rsvpNote('We couldn’t confirm this was saved — if it’s missing next time you open your link, please send it again.');
+        }
+      })
+        .then(function () { afterOk(); setTimeout(loadWishes, 1200); })
         .catch(function () {
           if (btn) { btn.textContent = 'Couldn’t send — tap to retry'; btn.disabled = false; }
         });
@@ -490,6 +640,18 @@
       afterOk();
     }
   });
+
+  /* A details save the sheet refused puts the form back, ready to resend. */
+  var detailsBtn = detailsForm && $('button[type=submit]', detailsForm);
+  var DETAILS_LABEL = detailsBtn ? detailsBtn.textContent : '';
+  function reopenDetails(msg) {
+    var wrap = $('#details-form-wrap'), done = $('#details-done');
+    if (wrap) wrap.hidden = false;
+    if (done) done.hidden = true;
+    if (detailsBtn) { detailsBtn.disabled = false; detailsBtn.textContent = DETAILS_LABEL; }
+    var note = $('#details-note');
+    if (note) note.textContent = msg;
+  }
 
   /* stage 2: guest details (accommodation + nights + arrival) */
   if (detailsForm) detailsForm.addEventListener('submit', function (e) {
@@ -531,17 +693,26 @@
     }
     var arrivalFull = arrival ? arrival + (hour !== '' ? ' ' + ('0' + hour).slice(-2) + ':00' : '') : '';
     var btn = $('button[type=submit]', detailsForm);
-    var name = ($('#rsvp-name').value || '').trim();
 
     if (API_URL) {
       if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
-      postApi({ action: 'details', key: guestKey || name,
+      sendApi({ action: 'details', key: who(), name: who(),
+                /* The attendance answer rides along, so if the RSVP post before
+                   this one was lost the sheet still gets a complete row. */
+                attending: 'yes',
+                pax: savedNames.length || parseInt(guestsInput && guestsInput.value, 10) || 1,
+                guests: savedNames, wishes: ($('#rsvp-wishes').value || '').trim(),
                 accommodation: chosen.value, nights: nights,
-                arrival: arrival, arrivalHour: hour })
-        .then(function (d) {
-          if (d && d.ok) showDetailsDone(chosen.value, arrivalFull, nights);
-          else throw new Error((d && d.error) || 'failed');
-        })
+                arrival: arrival, arrivalHour: hour }, {
+        refused: function () {
+          reopenDetails('Sorry — your details didn’t save. Please tap Complete RSVP again.');
+        },
+        unsure: function () {
+          var sum = $('#details-summary');
+          if (sum) sum.textContent += ' — we couldn’t confirm this was saved; if it’s missing next time you open your link, please send it again.';
+        }
+      })
+        .then(function () { showDetailsDone(chosen.value, arrivalFull, nights); })
         .catch(function () {
           if (btn) { btn.textContent = 'Couldn’t save — tap to retry'; btn.disabled = false; }
         });
@@ -550,13 +721,13 @@
     }
   });
 
-  /* count this open (per personalized link) — fire and forget */
+  /* count this open (per personalized link) — fire and forget. The whole link
+     goes along: seats and Holy Matrimony live only in the link, and a link
+     sent before a change keeps showing the old page, so the Sheet logs which
+     one was opened. Older backends ignore the extra field. */
   if (API_URL && guestKey) {
     try {
-      var openPing = new URLSearchParams();
-      openPing.append('action', 'open');
-      openPing.append('key', guestKey);
-      fetch(API_URL, { method: 'POST', body: openPing, keepalive: true }).catch(function () {});
+      sendApi({ action: 'open', key: guestKey, link: location.href.split('#')[0] }).catch(function () {});
     } catch (e) {}
   }
 
@@ -566,15 +737,23 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.found) return;
-        if (d.name && $('#rsvp-name')) $('#rsvp-name').value = d.name;
-        if (d.pax && guestsInput) {
-          var cap = parseInt(guestsInput.max, 10) || 99;
-          guestsInput.value = Math.min(d.pax, cap);
-        }
+        savedNames = Array.isArray(d.guests) ? d.guests
+          : String(d.guests || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
         var isYes = String(d.attending).toLowerCase() === 'yes';
-        var radio = form && form.querySelector('input[name=attendance][value="' + (isYes ? 'yes' : 'no') + '"]');
-        if (radio) radio.checked = true;
-        if (d.wishes && $('#rsvp-wishes')) $('#rsvp-wishes').value = d.wishes;
+        /* A guest who started changing their answer before this reply landed
+           keeps what they typed; the rest — unlocked pages, hotel choice — is
+           restored either way. */
+        if (!touched) {
+          if (d.name && $('#rsvp-name')) $('#rsvp-name').value = d.name;
+          if (d.pax && guestsInput) {
+            var cap = parseInt(guestsInput.max, 10) || 99;
+            guestsInput.value = Math.min(d.pax, cap);
+          }
+          var radio = form && form.querySelector('input[name=attendance][value="' + (isYes ? 'yes' : 'no') + '"]');
+          if (radio) radio.checked = true;
+          syncAttendance();
+          if (d.wishes && $('#rsvp-wishes')) $('#rsvp-wishes').value = d.wishes;
+        }
         if (isYes) {
           unlockInfo(false);
           unlockDetails(false);

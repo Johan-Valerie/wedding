@@ -302,6 +302,11 @@ h3.serif{ font-size:27px; line-height:1.2; }
 }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; }
 #rsvp .micro.center{ margin-top:12px; }
+/* a large party's name list can outgrow a short screen — scroll inside the page */
+#rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
+#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed quicknav */
+#rsvp-guest-names .field-label:first-child{ margin-top:4px; }
+#rsvp-back{ width:100%; margin-top:10px; font-family:'Inter',sans-serif; }
 
 /* honeypot — invisible to humans, tempting to bots */
 #rsvp-hp{ position:absolute !important; left:-9999px !important; width:1px; height:1px; opacity:0; }
