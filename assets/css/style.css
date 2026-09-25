@@ -376,6 +376,10 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* Playfair sets old-style figures by default; capitals and counters want
    lining ones ("MATTHEW 19 : 6", the countdown, the guest count) */
 .child .eyebrow{ margin-bottom:14px; font-variant-numeric:lining-nums; }
+/* Pages 1-9 (the hero to the countdown) are set a size smaller than the
+   cover and the RSVP pages; each page's own rules follow its section. */
+#hero .eyebrow, #verse .eyebrow, #story .eyebrow, #film .eyebrow,
+#countdown .eyebrow{ font-size:11.5px; }
 
 /* transparent “windows” that reveal the fixed video */
 .child.window{ background:transparent; }
@@ -409,19 +413,20 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .names-centred{ position:relative; display:flex; flex-direction:column; align-items:center; }
 .names-centred .name-lg{
   font-family:var(--display); font-weight:500;
-  font-size:clamp(46px,13vw,74px); line-height:.98; margin:0;
+  font-size:clamp(40px,11.4vw,65px); line-height:.98; margin:0;
 }
 .amp-centred{
   font-family:var(--milton); font-weight:700;
-  font-size:clamp(58px,16vw,87px);
+  font-size:clamp(51px,14vw,76px);
   color:rgba(255,255,255,.4); margin:-.42em 0 -.34em; line-height:.8;
 }
+#hero .datestrip{ font-size:12px; }
 .scroll-cue{
   position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
   display:flex; flex-direction:column; align-items:center; gap:10px; z-index:2;
 }
 .scroll-cue span{
-  writing-mode:vertical-rl; font-size:9.5px; letter-spacing:3px;
+  writing-mode:vertical-rl; font-size:9px; letter-spacing:3px;
   color:rgba(255,255,255,.6);
 }
 /* the line draws downward, erases downward, and rests until the 2s loop */
@@ -437,8 +442,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
-  .names-centred .name-lg{ font-size:78px; }
-  .amp-centred{ font-size:79px; }
+  .names-centred .name-lg{ font-size:68px; }
+  .amp-centred{ font-size:69px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
@@ -452,12 +457,14 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* 18% of the screen up from the bottom: just under the hem of Johan's
    jacket on the phone crop, already into the dark part of the fade */
 #dear .content{ padding:34px 26px calc(var(--vh) * .18); max-width:330px; }
-#dear h2{ font-size:34px; margin-top:2px; }
-#dear .note{ margin-top:12px; }
+#dear h2{ font-size:30px; margin-top:2px; }
+#dear .micro{ font-size:10px; }
+#dear .body{ font-size:13px; }
+#dear .note{ font-size:11.5px; margin-top:12px; }
 
 /* verse */
-/* 21px keeps each of the three lines whole down to a 360px phone */
-.verse-text{ font-size:21px; line-height:1.6; margin-top:10px; }
+/* each of the three lines stays whole down to a 360px phone */
+.verse-text{ font-size:18.5px; line-height:1.6; margin-top:10px; }
 
 /* groom / bride — the engagement's person pages, over the wedding's
    portraits: label, the first name in script, full name, then parents,
@@ -474,19 +481,19 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .person-inner{ position:relative; z-index:2; width:100%; max-width:560px; }
 .person-label{
-  font-weight:600; font-size:12px; letter-spacing:3px;
+  font-weight:600; font-size:11px; letter-spacing:3px;
   color:rgba(241,193,147,.5); margin:0 0 13px;
 }
 .person-name{ position:relative; }
 .name-script{
-  font-family:var(--script); font-size:clamp(58px,18vw,96px);
+  font-family:var(--script); font-size:clamp(50px,15.6vw,84px);
   margin:0; line-height:1.22; white-space:nowrap;
 }
 /* Pinyon's capital J swashes 0.27em back past the text origin; indenting by
    that overhang puts the J's ink on the margin, in line with the label. */
 #groom .name-script{ text-indent:.27em; }
-.fullname{ font-weight:600; font-size:16px; margin:8px 0 0; }
-.parents{ font-weight:300; font-size:15px; line-height:1.55; margin:15px 0 0; }
+.fullname{ font-weight:600; font-size:14.5px; margin:8px 0 0; }
+.parents{ font-weight:300; font-size:13.5px; line-height:1.55; margin:15px 0 0; }
 .pname{ white-space:nowrap; }   /* break the line at the ampersand, never mid-name */
 @media (min-width:768px) and (max-width:1023px){
   .person{ padding-left:60px; padding-right:60px; }
@@ -494,13 +501,14 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 
 /* story */
-.story-text{ font-size:21px; line-height:1.55; margin-top:14px; }
+#story h2.serif{ font-size:20px; }
+.story-text{ font-size:18.5px; line-height:1.55; margin-top:14px; }
 
 /* film window */
 #film{ align-items:flex-end; justify-content:center; background:transparent; }
 .film-caption{ margin-bottom:96px; padding:14px 22px; background:rgba(255,255,255,.20); }
 .film-caption .eyebrow{ margin-bottom:4px; color:var(--white); }
-.film-caption .micro{ color:rgba(255,255,255,.75); }
+.film-caption .micro{ font-size:10px; color:rgba(255,255,255,.75); }
 
 /* events — the engagement's event page: white type straight on the darkened
    photo, a title, the date between two ruled sides, venue and room, pill
@@ -519,20 +527,20 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* the engagement's clamp, capped at what a 430px column gives on desktop */
 .card-title{
   font-family:var(--display); font-weight:600;
-  font-size:clamp(26px,7.2vw,31px); letter-spacing:1px; line-height:1.2; margin:0 0 16px;
+  font-size:clamp(23px,6.3vw,27px); letter-spacing:1px; line-height:1.2; margin:0 0 16px;
 }
 .card-grid{
   display:grid; grid-template-columns:1fr auto 1fr;
   align-items:center; gap:14px; margin-bottom:16px;
 }
-.card-side{ display:flex; flex-direction:column; gap:7px; font-size:12.5px; letter-spacing:.6px; }
+.card-side{ display:flex; flex-direction:column; gap:7px; font-size:11.5px; letter-spacing:.6px; }
 .card-side .rule{ height:1px; background:rgba(255,255,255,.35); width:100%; }
 .card-date{ display:flex; flex-direction:column; align-items:center; line-height:1; font-family:var(--display); }
-.card-date .mon{ font-size:13px; letter-spacing:1px; }
-.card-date .day{ font-size:38px; font-weight:500; margin:2px 0; }
-.card-date .yr{ font-size:12px; }
-.venue{ font-weight:600; font-size:14.5px; line-height:1.5; margin:0 0 4px; }
-.address{ font-weight:300; font-size:13px; line-height:1.5; color:rgba(255,255,255,.85); margin:0 0 16px; }
+.card-date .mon{ font-size:11.5px; letter-spacing:1px; }
+.card-date .day{ font-size:33px; font-weight:500; margin:2px 0; }
+.card-date .yr{ font-size:11px; }
+.venue{ font-weight:600; font-size:13px; line-height:1.5; margin:0 0 4px; }
+.address{ font-weight:300; font-size:12px; line-height:1.5; color:rgba(255,255,255,.85); margin:0 0 16px; }
 .event-card > :last-child{ margin-bottom:0; }
 .events-actions{ margin-top:30px; flex:none; }   /* the page's one pair of buttons */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
@@ -552,9 +560,9 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .pill-ghost{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.34); }
 .pill:hover{ background:rgba(255,255,255,.42); transform:translateY(-1px); }
 /* all three events (the &hm=1 link): the same card, set tighter */
-#events.three .card-title{ font-size:24px; margin-bottom:10px; }
+#events.three .card-title{ font-size:21px; margin-bottom:10px; }
 #events.three .card-grid{ margin-bottom:10px; }
-#events.three .card-date .day{ font-size:32px; }
+#events.three .card-date .day{ font-size:28px; }
 #events.three .event-divider{ height:22px; margin:8px 0; }
 #events.three .events-actions{ margin-top:24px; }
 /* Shorter screens — which is most phones once Safari's bars take their
@@ -567,13 +575,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
    clear under the monogram and above the music button. */
 @media (max-height:730px){
   #events.three .events-inner{ padding-top:64px; padding-bottom:72px; }
-  #events.three .card-title{ font-size:21px; margin-bottom:6px; }
+  #events.three .card-title{ font-size:18.5px; margin-bottom:6px; }
   #events.three .card-grid{ gap:10px; margin-bottom:6px; }
-  #events.three .card-side{ font-size:11.5px; gap:5px; }
-  #events.three .card-date .mon{ font-size:11px; }
-  #events.three .card-date .day{ font-size:26px; margin:1px 0; }
-  #events.three .card-date .yr{ font-size:10px; }
-  #events.three .venue, #events.three .address{ display:inline; font-size:13px; }
+  #events.three .card-side{ font-size:10.5px; gap:5px; }
+  #events.three .card-date .mon{ font-size:10px; }
+  #events.three .card-date .day{ font-size:23px; margin:1px 0; }
+  #events.three .card-date .yr{ font-size:9.5px; }
+  #events.three .venue, #events.three .address{ display:inline; font-size:12px; }
   #events.three .address::before{ content:"\00b7"; margin:0 7px; }
   #events.three .events-actions{ margin-top:18px; }
   #events.three .event-divider{ height:10px; margin:5px 0; }
@@ -591,12 +599,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* countdown */
 .count-grid{ display:flex; justify-content:center; gap:10px; margin:22px 0; }
 .count-cell{
-  width:64px; padding:12px 0 10px;
+  width:58px; padding:10px 0 9px;
   border:1px solid var(--hairline-light);
   background:rgba(255,255,255,.10);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
 }
-.count-cell span{ font-family:var(--display); font-weight:500; font-size:26px; display:block; font-variant-numeric:lining-nums; }
+.count-cell span{ font-family:var(--display); font-weight:500; font-size:22.5px; display:block; font-variant-numeric:lining-nums; }
+#countdown .serif-italic{ font-size:14.5px; }
 .count-cell label{ font-size:8px; letter-spacing:1.7px; text-transform:uppercase; }
 
 /* rsvp */
@@ -811,7 +820,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (max-height:700px){
   .names{ font-size:44px; }
   h2.serif{ font-size:21px; }
-  .verse-text{ font-size:19px; }
+  #story h2.serif{ font-size:18.5px; }
+  .verse-text{ font-size:17px; }
   #wish-list{ min-height:220px; }
   #rsvp-form textarea{ height:52px; }
   .field-label{ margin:10px 0 4px; }
@@ -824,13 +834,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
    compact card, clear of the monogram and the music button */
 @media (max-height:600px){
   #events .events-inner{ padding-top:64px; padding-bottom:72px; }
-  #events .card-title{ font-size:21px; margin-bottom:6px; }
+  #events .card-title{ font-size:18.5px; margin-bottom:6px; }
   #events .card-grid{ gap:10px; margin-bottom:6px; }
-  #events .card-side{ font-size:11.5px; gap:5px; }
-  #events .card-date .mon{ font-size:11px; }
-  #events .card-date .day{ font-size:26px; margin:1px 0; }
-  #events .card-date .yr{ font-size:10px; }
-  #events .venue, #events .address{ display:inline; font-size:13px; }
+  #events .card-side{ font-size:10.5px; gap:5px; }
+  #events .card-date .mon{ font-size:10px; }
+  #events .card-date .day{ font-size:23px; margin:1px 0; }
+  #events .card-date .yr{ font-size:9.5px; }
+  #events .venue, #events .address{ display:inline; font-size:12px; }
   #events .address::before{ content:"\00b7"; margin:0 7px; }
   #events .events-actions{ margin-top:18px; }
   #events .event-divider{ height:10px; margin:5px 0; }
