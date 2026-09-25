@@ -53,10 +53,16 @@
     if (lbl) lbl.textContent = 'No of Guest (Max ' + maxGuests + ')';
   }
 
-  /* holy matrimony is invitation-only: card shows only with &hm=1 */
+  /* holy matrimony is invitation-only: card (and the line after it) shows
+     only with &hm=1; with all three events the page sets them tighter */
   if (params.get('hm') !== '1') {
-    var holmatCard = $('#event-holmat');
-    if (holmatCard) holmatCard.hidden = true;
+    ['#event-holmat', '#holmat-divider'].forEach(function (sel) {
+      var el = $(sel);
+      if (el) el.hidden = true;
+    });
+  } else {
+    var eventsSec = $('#events');
+    if (eventsSec) eventsSec.classList.add('three');
   }
 
   /* ── audio system ────────────────────────────────────────── */
