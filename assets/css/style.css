@@ -2,7 +2,8 @@
    Johan & Valerie — placeholder invitation
    Art style study: monochrome editorial, hairlines, no shadows,
    frosted glass, Instrument Serif / Inter / Ovo / Pinyon Script
-   (the intro and cover are the engagement invitation's own design)
+   (the intro, cover, first page and groom/bride pages are the
+   engagement invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
 
 /* Milton One Bold — the cover names, as on the engagement. Self-hosted (not
@@ -14,6 +15,16 @@
   src:url("../fonts/MiltonOneBold.woff2") format("woff2"),
       url("../fonts/MiltonOneBold.otf")   format("opentype");
   font-weight:700;
+  font-style:normal;
+  font-display:swap;
+}
+/* Pinyon Script — the groom and bride names, self-hosted as on the
+   engagement: a device that failed to fetch it from Google fell back to
+   whatever "cursive" means locally (Snell Roundhand on iOS). */
+@font-face{
+  font-family:"Pinyon Script";
+  src:url("../fonts/PinyonScript.woff2") format("woff2");
+  font-weight:400;
   font-style:normal;
   font-display:swap;
 }
@@ -32,6 +43,7 @@
   /* intro + cover faces, as on the engagement */
   --display:"Playfair Display",Georgia,serif;
   --milton:"Milton One","Pinyon Script",cursive;
+  --script:"Pinyon Script",cursive;
   --serif-light:"Cormorant",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
@@ -332,8 +344,11 @@ h3.serif{ font-size:27px; line-height:1.2; }
 .fade{ opacity:0; transition:opacity 2s; }
 .fade.reanimate.in-view{ opacity:1; transition:opacity 2s; }
 .delay200ms{ transition-delay:.2s !important; }
+.delay300ms{ transition-delay:.3s !important; }
 .delay400ms{ transition-delay:.4s !important; }
+.delay500ms{ transition-delay:.5s !important; }
 .delay600ms{ transition-delay:.6s !important; }
+.delay700ms{ transition-delay:.7s !important; }
 .delay1000ms{ transition-delay:1s !important; }
 
 /* hero — the engagement's first page, over the wedding's video */
@@ -387,21 +402,39 @@ h3.serif{ font-size:27px; line-height:1.2; }
 /* verse */
 .verse-text{ font-size:21px; line-height:1.65; margin-top:10px; }
 
-/* profiles */
-/* profiles — full-bleed portrait, text anchored low over a gradient */
-.profile{ flex-direction:column; justify-content:flex-end; gap:0; }
-.profile-scrim{
-  position:absolute; inset:0; z-index:1;
-  background:linear-gradient(180deg,
-    rgba(16,16,16,.12) 0%,
-    rgba(16,16,16,0) 30%,
-    rgba(16,16,16,.52) 76%,
-    rgba(16,16,16,.74) 100%);
+/* groom / bride — the engagement's person pages, over the wedding's
+   portraits: label, the first name in script, full name, then parents,
+   left-aligned and anchored low. */
+.person{
+  flex-direction:column; align-items:stretch; justify-content:flex-end;
+  padding:74px 24px; color:var(--white);
+  font-family:'Poppins',system-ui,sans-serif; font-weight:300;
 }
-.profile .content{ padding-bottom:58px; }
-.profile h2{ font-size:44px; text-transform:none; margin:2px 0 10px; }
-.profile .micro{ margin-bottom:6px; }
-.profile .body{ font-weight:300; }
+/* portraits are bright frames — they need a much heavier foot */
+.scrim-person{
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(rgba(0,0,0,.18) 0%, rgba(0,0,0,.30) 38%, rgba(0,0,0,.90) 100%);
+}
+.person-inner{ position:relative; z-index:2; width:100%; max-width:560px; }
+.person-label{
+  font-weight:600; font-size:12px; letter-spacing:3px;
+  color:rgba(241,193,147,.5); margin:0 0 13px;
+}
+.person-name{ position:relative; }
+.name-script{
+  font-family:var(--script); font-size:clamp(58px,18vw,96px);
+  margin:0; line-height:1.22; white-space:nowrap;
+}
+/* Pinyon's capital J swashes 0.27em back past the text origin; indenting by
+   that overhang puts the J's ink on the margin, in line with the label. */
+#groom .name-script{ text-indent:.27em; }
+.fullname{ font-weight:600; font-size:16px; margin:8px 0 0; }
+.parents{ font-weight:300; font-size:15px; line-height:1.55; margin:15px 0 0; }
+.pname{ white-space:nowrap; }   /* break the line at the ampersand, never mid-name */
+@media (min-width:768px) and (max-width:1023px){
+  .person{ padding-left:60px; padding-right:60px; }
+  .person-inner{ max-width:640px; }
+}
 
 /* story */
 .story-text{ font-size:18px; line-height:1.7; margin-top:14px; }
@@ -501,7 +534,6 @@ h3.serif{ font-size:27px; line-height:1.2; }
 .radio-col .radio input:checked + span{ border-color:var(--ink); background:rgba(229,224,216,.35); }
 .radio-col .stars{ color:#c4c4c4; font-size:11px; letter-spacing:2px; vertical-align:1px; white-space:nowrap; }
 .radio-col .radio span em a{ color:var(--muted); text-decoration:underline; text-underline-offset:2px; }
-.profile h2.profile-name{ font-size:33px; line-height:1.1; }
 #details-form input[type=date], #details-form select{
   width:100%; font-family:'Inter',sans-serif; font-size:14px; font-weight:300;
   color:var(--ink); background:transparent;
@@ -656,7 +688,6 @@ h3.serif{ font-size:27px; line-height:1.2; }
 @media (max-height:700px){
   .names{ font-size:44px; }
   h2.serif{ font-size:30px; }
-  .profile .content{ padding-bottom:44px; }
   .verse-text{ font-size:18px; }
   #wish-list{ min-height:220px; }
   #rsvp-form textarea{ height:52px; }

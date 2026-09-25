@@ -9,11 +9,12 @@
 <link rel="icon" href="assets/img/favicon.png">
 
 <!-- Fonts: Instrument Serif (display), Inter (labels), Ovo (tracked accents), Pinyon Script (script).
-     The intro and cover are the engagement's: Playfair Display, Cormorant italic, and
-     Milton One Bold for the two names (self-hosted, see style.css). -->
+     The intro, cover and groom/bride pages are the engagement's: Playfair Display,
+     Cormorant italic, Poppins, Milton One Bold for the two cover names and Pinyon
+     Script for the groom/bride names (both self-hosted, see style.css). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Pinyon+Script&family=Playfair+Display:wght@400;500;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Playfair+Display:wght@400;500;600&family=Poppins:wght@300;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
 <!-- What the opening seconds need: the intro crest (shown 3.5s in), the cover
      photo behind the greeting, and the face the two names are set in. -->
 <link rel="preload" as="image" href="assets/img/monogram.webp" fetchpriority="high">
@@ -154,25 +155,29 @@
     </div>
   </section>
 
-  <!-- 4 · GROOM -->
-  <section class="child photo-section profile" id="groom" style="background-image:url('assets/img/groom.jpg')">
-    <div class="profile-scrim"></div>
-    <div class="content light" data-aos="fade">
-      <p class="ovo">THE GROOM</p>
-      <h2 class="serif profile-name">Johan Ganda Wijaya</h2>
-      <p class="micro muted">THE SON OF</p>
-      <p class="body">Mr. ____________ &amp; Mrs. ____________</p>
+  <!-- 4 · GROOM — the engagement's person page, over the wedding's portrait -->
+  <section class="child photo-section person" id="groom" style="background-image:url('assets/img/groom.jpg')">
+    <div class="scrim-person"></div>
+    <div class="person-inner">
+      <p class="person-label reanimate fade delay200ms">THE GROOM</p>
+      <div class="person-name reanimate fade delay300ms">
+        <p class="name-script">Johan</p>
+      </div>
+      <p class="fullname reanimate fade delay500ms">Johan Ganda Wijaya</p>
+      <p class="parents reanimate fade delay700ms">Son of<br><span class="pname">Mr. Gunawan Ganda Wijaya</span> &amp; <span class="pname">Mrs. Leni Lusianti</span></p>
     </div>
   </section>
 
   <!-- 5 · BRIDE -->
-  <section class="child photo-section profile" id="bride" style="background-image:url('assets/img/bride.jpg')">
-    <div class="profile-scrim"></div>
-    <div class="content light" data-aos="fade">
-      <p class="ovo">THE BRIDE</p>
-      <h2 class="serif profile-name">Emanuella Valerie Didy</h2>
-      <p class="micro muted">THE DAUGHTER OF</p>
-      <p class="body">Mr. ____________ &amp; Mrs. ____________</p>
+  <section class="child photo-section person" id="bride" style="background-image:url('assets/img/bride.jpg')">
+    <div class="scrim-person"></div>
+    <div class="person-inner">
+      <p class="person-label reanimate fade delay200ms">THE BRIDE</p>
+      <div class="person-name reanimate fade delay300ms">
+        <p class="name-script">Valerie</p>
+      </div>
+      <p class="fullname reanimate fade delay500ms">Emanuella Valerie Didy</p>
+      <p class="parents reanimate fade delay700ms">Daughter of<br><span class="pname">Mr. Didy Ongkowidjaja</span> &amp; <span class="pname">Mrs. Widia Wijaya</span></p>
     </div>
   </section>
 
