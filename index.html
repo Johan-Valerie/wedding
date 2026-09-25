@@ -6,10 +6,17 @@
 <title>The Wedding of Johan &amp; Valerie</title>
 <meta name="description" content="We invite you to celebrate the wedding of Johan & Valerie — Saturday, 9 January 2027.">
 
-<!-- Fonts: Instrument Serif (display), Inter (labels), Ovo (tracked accents), Pinyon Script (script) -->
+<!-- Fonts: Instrument Serif (display), Inter (labels), Ovo (tracked accents), Pinyon Script (script).
+     The intro and cover are the engagement's: Playfair Display, Cormorant italic, and
+     Milton One Bold for the two names (self-hosted, see style.css). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Pinyon+Script&family=Playfair+Display:wght@400;600&family=Cormorant:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+<!-- What the opening seconds need: the intro crest (shown 3.5s in), the cover
+     photo behind the greeting, and the face the two names are set in. -->
+<link rel="preload" as="image" href="assets/img/monogram.webp" fetchpriority="high">
+<link rel="preload" as="image" href="assets/img/cover.jpg" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/MiltonOneBold.woff2" crossorigin>
 
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
@@ -19,44 +26,51 @@
 </head>
 <body>
 
-<!-- ══════════════════ PRELOADER ══════════════════ -->
+<!-- ══════════════════ INTRO / PRELOADER ══════════════════ -->
+<!-- The engagement invitation's intro, beat for beat (timings in style.css). -->
 <div id="preloader">
-  <div class="strobe" aria-hidden="true">
-    <img src="assets/img/strobe-01.jpg" alt="" class="active">
-    <img src="assets/img/strobe-02.jpg" alt="">
-    <img src="assets/img/strobe-03.jpg" alt="">
-    <img src="assets/img/strobe-04.jpg" alt="">
-    <img src="assets/img/strobe-05.jpg" alt="">
-    <img src="assets/img/strobe-06.jpg" alt="">
-    <img src="assets/img/strobe-07.jpg" alt="">
-    <img src="assets/img/strobe-08.jpg" alt="">
-    <img src="assets/img/strobe-09.jpg" alt="">
-    <img src="assets/img/strobe-10.jpg" alt="">
+  <div class="preloader-content">
+    <div class="intro-greeting">
+      <span class="lead">Dear,</span>
+      <span class="guest" id="intro-guest">Our Beloved Guest</span>
+      <span class="lead">You are invited to</span>
+    </div>
+    <div class="first-text">THE WEDDING OF</div>
+    <div class="intro-stack">
+      <div class="intro-name">JOHAN GANDA WIJAYA</div>
+      <img src="assets/img/monogram.webp" alt="" class="crest" width="240" height="222" fetchpriority="high">
+      <div class="intro-name">EMANUELLA VALERIE DIDY</div>
+    </div>
   </div>
-  <div class="preloader-inner">
-    <p class="kicker split-kicker">WE INVITE YOU TO CELEBRATE</p>
-    <h1 class="names split-names">Johan &amp; Valerie</h1>
-    <p class="date-line">SATURDAY, 9 JANUARY 2027</p>
-  </div>
-  <div class="preloader-count"><span id="progress-percentage">0</span></div>
 </div>
 
 <!-- ══════════════════ COVER (locked until opened) ══════════════════ -->
-<div id="cover">
-  <div class="cover-bg" style="background-image:url('assets/img/cover.jpg')"></div>
+<!-- The engagement invitation's cover, over the wedding's own photo. -->
+<div id="cover-section">
+  <img id="cover-bg" src="assets/img/cover.jpg" alt="" fetchpriority="high">
   <div class="cover-scrim"></div>
-  <div class="cover-content">
-    <p class="kicker">THE WEDDING OF</p>
-    <h1 class="names serif">Johan &amp; Valerie</h1>
-    <p class="date-line">SATURDAY, 9 JANUARY 2027</p>
-    <div class="cover-guest glass">
-      <p class="micro">Dear,</p>
-      <h2 id="guest-name" class="serif-italic">Our Beloved Guest</h2>
-      <p class="micro muted">We apologize if there is any misspelling of name or title</p>
+
+  <div class="cover-inner">
+    <div class="cover-top">
+      <h1 class="sr-only">The wedding of Johan &amp; Valerie &mdash; Saturday, 9 January 2027</h1>
+      <p class="eyebrow">THE WEDDING OF</p>
+      <div class="names-stagger">
+        <p class="name-lg">Johan</p>
+        <p class="amp-lg">&amp;</p>
+        <p class="name-lg">Valerie</p>
+      </div>
+      <p class="datestrip">Saturday, 9 January 2027</p>
     </div>
-    <button id="open-invitation" type="button">
-      <span>Open Invitation</span>
-    </button>
+
+    <div class="cover-bottom">
+      <p class="dear">Dear,</p>
+      <p class="guest-name" id="guest-name">Our Beloved Guest</p>
+      <p class="apology">We apologize if there is any misspelling of name or title.</p>
+      <button id="open-invitation" type="button">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2 5.5h20v13H2z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 6.2 12 13l9.5-6.8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+        <span>OPEN INVITATION</span>
+      </button>
+    </div>
   </div>
 </div>
 

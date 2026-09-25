@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Johan & Valerie — placeholder invitation
-   Motion study: preloader strobe, split-text loops, blur cover
-   exit, scroll-snap deck, audio system, gallery + lightbox
+   Motion study: the engagement's intro + cover, split-text loops,
+   scroll-snap deck, audio system, gallery + lightbox
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -104,34 +104,66 @@
   }
   disableScrolling();
 
-  /* ── preloader: counter + photo strobe ───────────────────── */
+  /* ── intro (the engagement's): four CSS beats, then the cover ── */
   var preloader = $('#preloader');
-  var counterEl = $('#progress-percentage');
-  var strobeImgs = $$('#preloader .strobe img');
-  var strobeIdx = 0;
-  var strobeTimer = setInterval(function () {
-    if (!strobeImgs.length) return;
-    strobeImgs[strobeIdx].classList.remove('active');
-    strobeIdx = (strobeIdx + 1) % strobeImgs.length;
-    strobeImgs[strobeIdx].classList.add('active');
-  }, 200);
+  function hidePreloader() {
+    if (!preloader || !preloader.parentNode) return;
+    preloader.style.transition = 'opacity .5s ease';
+    preloader.style.opacity = '0';
+    setTimeout(function () {
+      if (preloader.parentNode) preloader.parentNode.removeChild(preloader);   // cover stays locked until opened
+    }, 500);
+  }
+  var forceHide = setTimeout(hidePreloader, 10000);          // safety net
+  /* Dismiss 1s after the last beat lands — anchored to the name's own
+     animationend (~5.6s), not window load, so slow media can't stretch it. */
+  var introNames = $$('.intro-name');
+  if (introNames.length) introNames[introNames.length - 1].addEventListener('animationend', function () {
+    setTimeout(function () { clearTimeout(forceHide); hidePreloader(); }, 1000);
+  }, { once: true });
 
-  var width = 0;
-  var countTimer = setInterval(function () {
-    if (width >= 100) {
-      clearInterval(countTimer);
-      setTimeout(function () {
-        if (preloader) preloader.classList.add('hide');
-        setTimeout(function () {
-          clearInterval(strobeTimer);
-          if (preloader && preloader.parentNode) preloader.parentNode.removeChild(preloader);
-        }, 900);
-      }, 400);
-    } else {
-      width++;
-      if (counterEl) counterEl.textContent = width;
+  /* The greeting: the Sheet builds a couple's key as "Name & Companion", so
+     each name gets its own line with the ampersand between. Long names
+     (titles, suffixes) shrink to fit the block, and only wrap if they still
+     won't fit. */
+  function autoFit(node, container, maxPx, minPx) {
+    maxPx = maxPx || 14; minPx = minPx || 8.5;
+    node.style.whiteSpace = 'nowrap';
+    var size = maxPx;
+    node.style.fontSize = size + 'px';
+    node.style.letterSpacing = '3px';
+    var avail = container.clientWidth;
+    while (size > minPx && node.scrollWidth > avail) {
+      size -= 0.5;
+      node.style.fontSize = size + 'px';
+      node.style.letterSpacing = (3 * size / maxPx).toFixed(2) + 'px';
     }
-  }, 22);
+    if (node.scrollWidth > avail) node.style.whiteSpace = 'normal';   // last resort
+  }
+  (function renderIntroGuest() {
+    var el = $('#intro-guest');
+    if (!el) return;
+    el.textContent = '';
+    (guestKey || 'Our Beloved Guest').split(/\s+&\s+/).filter(Boolean).forEach(function (part, i) {
+      if (i) {
+        var amp = document.createElement('span');
+        amp.className = 'gamp';
+        amp.textContent = '&';
+        el.appendChild(amp);
+      }
+      var n = document.createElement('span');
+      n.className = 'gname';
+      n.textContent = part;                 // textContent, so no escaping needed
+      el.appendChild(n);
+    });
+    var fit = function () {
+      if (!document.body.contains(el)) return;             // intro already gone
+      $$('.gname', el).forEach(function (n) { autoFit(n, el); });
+    };
+    fit();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    window.addEventListener('resize', fit);
+  })();
 
   /* ── split-text loops (GSAP + SplitText) ─────────────────── */
   function initSplitLoops() {
@@ -145,8 +177,6 @@
         .from(split.chars, { x: fromX, opacity: 0, duration: 0.7, ease: 'power3.out', stagger: 0.035 })
         .to(split.chars, { opacity: 0, duration: 0.6, ease: 'power2.inOut', stagger: 0.012 }, '+=2.6');
     }
-    loopIn('.split-kicker', 13, 0);
-    loopIn('.split-names', -13, 0.15);
     loopIn('.split-kicker-hero', 13, 0);
     loopIn('.split-names-hero', -13, 0.15);
   }
@@ -154,16 +184,16 @@
   else initSplitLoops();
 
   /* ── open invitation ─────────────────────────────────────── */
-  var cover = $('#cover');
+  var cover = $('#cover-section');
   var openBtn = $('#open-invitation');
   if (openBtn) openBtn.addEventListener('click', function () {
     if (opened) return;
     opened = true;
 
     document.documentElement.style.scrollSnapType = 'none';
-    if (cover) {
-      cover.classList.add('fade-out');
-      setTimeout(function () { if (cover.parentNode) cover.parentNode.removeChild(cover); }, 500);
+    if (cover) {                              // the engagement's exit: fade + a slight zoom
+      cover.classList.add('hidden');
+      setTimeout(function () { if (cover.parentNode) cover.parentNode.removeChild(cover); }, 1000);
     }
     enableScrolling();
     playAudio();

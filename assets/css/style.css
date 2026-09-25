@@ -2,7 +2,21 @@
    Johan & Valerie — placeholder invitation
    Art style study: monochrome editorial, hairlines, no shadows,
    frosted glass, Instrument Serif / Inter / Ovo / Pinyon Script
+   (the intro and cover are the engagement invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
+
+/* Milton One Bold — the cover names, as on the engagement. Self-hosted (not
+   on Google Fonts). The vendor ships it as its own family at weight class
+   400, so it is remapped to CSS 700: asking for 700 gets the real bold
+   outlines, never a synthetic smear. */
+@font-face{
+  font-family:"Milton One";
+  src:url("../fonts/MiltonOneBold.woff2") format("woff2"),
+      url("../fonts/MiltonOneBold.otf")   format("opentype");
+  font-weight:700;
+  font-style:normal;
+  font-display:swap;
+}
 
 :root{
   --white:#ffffff;
@@ -14,6 +28,11 @@
   --hairline-light:rgba(255,255,255,.34);
   --col-w:430px;
   --vh:100vh;
+
+  /* intro + cover faces, as on the engagement */
+  --display:"Playfair Display",Georgia,serif;
+  --milton:"Milton One","Pinyon Script",cursive;
+  --serif-light:"Cormorant",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -59,70 +78,157 @@ h3.serif{ font-size:27px; line-height:1.2; }
   border:1px solid var(--hairline-light);
 }
 
-/* ═══ PRELOADER ═══════════════════════════════════════════════ */
+/* ═══ INTRO / PRELOADER ══════════════════════════════════════
+   The engagement invitation's intro — same faces, sizes, placement and
+   timings. Four beats, opacity only; nothing moves.
+     0.3-2.3s  "Dear, / <guest> / You are invited to"  in, hold, out
+     2.3-3.5s  "THE WEDDING OF"                         in, hold, out
+     3.5-4.6s  monogram fades in
+     4.5-5.6s  the two full names fade in above and below it
+   then a 1s hold before main.js clears it (~6.6s in all).            */
 #preloader{
   position:fixed; inset:0; z-index:1000;
-  background:var(--ink);
+  background-color:rgba(0,0,0,.94);
+  backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
   display:flex; align-items:center; justify-content:center;
-  transition:opacity .8s ease, visibility .8s ease;
 }
-#preloader.hide{ opacity:0; visibility:hidden; }
-#preloader .strobe{ position:absolute; inset:0; overflow:hidden; }
-#preloader .strobe img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; opacity:0;
+.preloader-content{
+  position:relative; width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
 }
-#preloader .strobe img.active{ opacity:.38; }
-.preloader-inner{
-  position:relative; z-index:2; text-align:center; color:var(--white);
-  padding:0 24px;
+.first-text, .intro-name{
+  color:var(--white); font-family:var(--display);
+  font-size:14px; font-weight:600; letter-spacing:3px;
+  opacity:0; white-space:nowrap;
 }
-.preloader-inner .kicker{ margin-bottom:16px; }
-.preloader-inner .names{ font-family:'Instrument Serif',serif; font-size:52px; }
-.preloader-inner .date-line{ margin-top:16px; }
-.preloader-count{
-  position:absolute; bottom:34px; left:0; right:0; z-index:2;
-  text-align:center; color:var(--white);
-  font-family:'Instrument Serif',serif; font-size:40px;
+.intro-greeting{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(86vw,430px); text-align:center;   /* definite width: autoFit measures against it */
+  opacity:0;
+  animation:2s fadeInOut .3s ease-in-out forwards;
 }
-.preloader-count::after{ content:'%'; font-size:18px; margin-left:2px; opacity:.6; }
+/* "Dear," and "You are invited to" borrow the cover's apology type:
+   Cormorant italic, small and quiet. The guest name sits between them in
+   the display face, in the casing typed in the Sheet. */
+.intro-greeting .lead{
+  display:block;
+  font-family:var(--serif-light); font-style:italic; font-weight:400;
+  font-size:11.5px; letter-spacing:normal; line-height:1.9;
+  color:rgba(255,255,255,.72);
+}
+.intro-greeting .guest{ display:block; margin:4px 0 6px; }
+.intro-greeting .gname{
+  display:block;
+  font-family:var(--display); font-weight:600;
+  font-size:14px; letter-spacing:3px;
+  line-height:1.65; color:var(--white);
+}
+.intro-greeting .gamp{
+  display:block; font-family:var(--display); font-weight:400;
+  font-size:13px; line-height:1.9; color:rgba(255,255,255,.78);
+}
+.first-text{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  animation:1.2s fadeInOut 2.3s ease-in-out forwards;
+}
+/* JOHAN / crest / VALERIE stacked on one centre line */
+.intro-stack{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:38px;
+  text-align:center;
+}
+.intro-name{
+  font-size:clamp(10.5px,3.3vw,14px); letter-spacing:clamp(2px,.8vw,3px);
+  animation:1.1s fadeIn 4.5s ease-in-out forwards;
+}
+.crest{
+  flex:0 0 auto; width:68px; height:auto;
+  opacity:0;
+  animation:1.1s fadeIn 3.5s ease-in-out forwards;
+}
+@keyframes fadeInOut{ 0%{opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+@keyframes fadeIn{ 0%{opacity:0} 100%{opacity:.95} }
 
-/* ═══ COVER ═══════════════════════════════════════════════════ */
-#cover{
+/* ═══ COVER ═══════════════════════════════════════════════════
+   The engagement invitation's cover over the wedding's photo: names at
+   the top, the guest and OPEN INVITATION at the foot. */
+#cover-section{
   position:fixed; inset:0; z-index:900;
-  display:flex; align-items:flex-end; justify-content:center;
+  width:100%; overflow:hidden;
+  color:var(--white);
+  transition:opacity 1s, transform 1s;
 }
-.cover-bg{ position:absolute; inset:0; background-size:cover; background-position:center; }
+#cover-section.hidden{ opacity:0; transform:scale(1.02); }
+#cover-bg{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:50% 30%;
+}
 .cover-scrim{
-  position:absolute; inset:0;
-  background:linear-gradient(180deg, rgba(16,16,16,.30) 0%, rgba(16,16,16,.05) 40%, rgba(16,16,16,.55) 100%);
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(rgba(0,0,0,.48) 0%, rgba(0,0,0,.28) 38%, rgba(0,0,0,.72) 100%);
 }
-.cover-content{
-  position:relative; z-index:2; text-align:center; color:var(--white);
-  padding:0 28px calc(52px + env(safe-area-inset-bottom)); width:100%; max-width:var(--col-w);
+.cover-inner{
+  position:relative; z-index:2;
+  height:100%; display:flex; flex-direction:column;
+  justify-content:space-between; align-items:center;
+  padding:46px 24px calc(34px + env(safe-area-inset-bottom));
+  text-align:center;
 }
-.cover-content .names{ font-size:54px; margin:6px 0 2px; }
-.cover-guest{
-  margin:26px auto 24px; padding:18px 22px; max-width:320px;
-  background:rgba(255,255,255,.14);
+.cover-top, .cover-bottom{ width:100%; max-width:520px; }
+/* for a screen reader and a search result, absent to everything else */
+.sr-only{
+  position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
 }
-.cover-guest .micro{ margin-bottom:6px; }
-.cover-guest h2{ font-size:27px; line-height:1.2; }
-.cover-guest .muted{ margin-top:8px; font-size:9px; color:rgba(255,255,255,.66); }
+.cover-top .eyebrow{
+  font-family:var(--display); font-weight:600;
+  font-size:13px; letter-spacing:2px; margin:0 0 14px;
+}
+.names-stagger{ display:flex; flex-direction:column; align-items:center; }
+/* the slight diagonal, via transforms so the flex centring stays true.
+   A script face needs a bigger px for the same optical size, and room for
+   the swashes — hence the large clamp. */
+.names-stagger .name-lg{
+  position:relative; z-index:1; margin:0;
+  font-family:var(--milton); font-weight:700;
+  font-size:clamp(51px,16.8vw,102px); line-height:1;
+}
+.names-stagger .name-lg:first-of-type{ transform:translateX(-13px); }
+/* Milton's em box is far taller than its ink; this closes the gap */
+.names-stagger .name-lg:last-of-type{ transform:translateX(13px); margin-top:-.21em; }
+/* ghost ampersand behind the seam; the negative margins give it no height */
+.amp-lg{
+  font-family:var(--milton); font-weight:700;
+  font-size:calc(clamp(51px,16.8vw,102px) * 1.15);
+  color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
+}
+.cover-top .datestrip{
+  font-family:var(--display); font-weight:400;
+  font-size:13.5px; letter-spacing:1.2px; margin:6.6px 0 0;
+}
+.cover-bottom .dear{
+  font-family:var(--display); font-weight:400; font-size:13.5px;
+  margin:0; color:rgba(255,255,255,.9);
+}
+.cover-bottom .guest-name{
+  font-family:var(--display); font-weight:600; font-size:19px; margin:2px 0 0;
+  border-bottom:1px solid rgba(255,255,255,.45);
+  display:inline-block; padding:0 22px 8px;
+}
+.cover-bottom .apology{
+  font-family:var(--serif-light); font-style:italic; font-weight:300;
+  font-size:11.5px; color:rgba(255,255,255,.6); margin:12px 0 16px;
+}
 #open-invitation{
-  font-family:'Inter',sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase;
-  background:var(--cream); color:var(--ink);
-  border:1px solid var(--cream); border-radius:2px;
-  padding:14px 34px; cursor:pointer;
-  transition:background .35s ease, color .35s ease;
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  border:0; border-radius:100px; padding:12px 30px 11px;
+  background:rgba(255,255,255,.314); color:var(--white); cursor:pointer;
+  font-family:var(--display); font-weight:600; font-size:12px; letter-spacing:1.2px;
+  backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  transition:background .25s, transform .25s;
 }
-#open-invitation:hover{ background:transparent; color:var(--cream); }
-
-/* cover exit — the blur curtain (values lifted from the original) */
-@keyframes blurSlideUp{
-  to{ opacity:0; transform:translateY(-50px); filter:blur(10px); }
-}
-#cover.fade-out{ animation:blurSlideUp .5s ease forwards; }
+#open-invitation:hover{ background:rgba(255,255,255,.42); transform:translateY(-1px); }
+#open-invitation .ico{ width:16px; height:16px; fill:currentColor; }
 
 /* ═══ FIXED UI ════════════════════════════════════════════════ */
 #side-panel{ display:none; }
@@ -455,7 +561,6 @@ h3.serif{ font-size:27px; line-height:1.2; }
 
   #invitation{ margin-left:auto; width:var(--col-w); border-left:1px solid var(--hairline-light); }
   #video-backdrop{ width:var(--col-w); }
-  #cover .cover-content{ max-width:var(--col-w); }
   #quicknav{ left:auto; right:calc(var(--col-w)/2); transform:translateX(50%) translateY(20px); }
   #quicknav.fade-up{ transform:translateX(50%) translateY(0); }
 }
