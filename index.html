@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>The Wedding of Johan &amp; Valerie</title>
 <meta name="description" content="We invite you to celebrate the wedding of Johan & Valerie — Saturday, 9 January 2027.">
+<!-- the engagement invitation's tab icon: our V&J mark, a dedicated 64px image -->
+<link rel="icon" href="assets/img/favicon.png">
 
 <!-- Fonts: Instrument Serif (display), Inter (labels), Ovo (tracked accents), Pinyon Script (script).
      The intro and cover are the engagement's: Playfair Display, Cormorant italic, and
      Milton One Bold for the two names (self-hosted, see style.css). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Pinyon+Script&family=Playfair+Display:wght@400;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Ovo&family=Pinyon+Script&family=Playfair+Display:wght@400;500;600&family=Cormorant:ital,wght@0,300;1,300;1,400&display=swap" rel="stylesheet">
 <!-- What the opening seconds need: the intro crest (shown 3.5s in), the cover
      photo behind the greeting, and the face the two names are set in. -->
 <link rel="preload" as="image" href="assets/img/monogram.webp" fetchpriority="high">
@@ -115,16 +117,22 @@
 <!-- ══════════════════ INVITATION COLUMN ══════════════════ -->
 <main id="invitation">
 
-  <!-- 1 · HERO over video -->
-  <section class="child window" id="hero">
-    <div class="hero-content">
-      <p class="kicker light split-kicker-hero">WE INVITE YOU TO CELEBRATE</p>
-      <h1 class="names light split-names-hero">Johan &amp; Valerie</h1>
-      <p class="date-line light">SATURDAY, 9 JANUARY 2027</p>
+  <!-- 1 · HERO over video — the engagement invitation's first page: eyebrow,
+       the names stacked round a ghost ampersand, the date, and the SCROLL cue.
+       Each line fades in on a stagger, replayed every time the page comes
+       back into view (.reanimate, see main.js). -->
+  <section class="child window hero" id="hero">
+    <div class="bg-scrim"></div>
+    <div class="hero-inner">
+      <p class="eyebrow reanimate fade delay200ms">THE WEDDING OF</p>
+      <div class="names-centred reanimate fade delay400ms">
+        <p class="name-lg">Johan</p>
+        <p class="amp-centred">&amp;</p>
+        <p class="name-lg">Valerie</p>
+      </div>
+      <p class="datestrip reanimate fade delay600ms">Saturday, 9 January 2027</p>
     </div>
-    <div class="scroll-cue" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 9l6 6 6-6"/></svg>
-    </div>
+    <div class="scroll-cue reanimate fade delay1000ms" aria-hidden="true"><span>SCROLL</span><i></i></div>
   </section>
 
   <!-- 2 · DEAR GUEST -->
@@ -442,8 +450,6 @@
   <source src="assets/audio/soundtrack.m4a" type="audio/mp4">
 </audio>
 
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script src="assets/js/main.js"></script>

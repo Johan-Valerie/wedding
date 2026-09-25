@@ -180,9 +180,14 @@ h3.serif{ font-size:27px; line-height:1.2; }
   position:absolute; width:1px; height:1px; margin:-1px; padding:0;
   overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
 }
-.cover-top .eyebrow{
+/* shared with the hero, as on the engagement */
+.eyebrow{
   font-family:var(--display); font-weight:600;
   font-size:13px; letter-spacing:2px; margin:0 0 14px;
+}
+.datestrip{
+  font-family:var(--display); font-weight:400;
+  font-size:13.5px; letter-spacing:1.2px; margin:14px 0 0;
 }
 .names-stagger{ display:flex; flex-direction:column; align-items:center; }
 /* the slight diagonal, via transforms so the flex centring stays true.
@@ -202,10 +207,7 @@ h3.serif{ font-size:27px; line-height:1.2; }
   font-size:calc(clamp(51px,16.8vw,102px) * 1.15);
   color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
 }
-.cover-top .datestrip{
-  font-family:var(--display); font-weight:400;
-  font-size:13.5px; letter-spacing:1.2px; margin:6.6px 0 0;
-}
+.cover-top .datestrip{ margin-top:6.6px; }   /* Valerie's ink stops short of its line box */
 .cover-bottom .dear{
   font-family:var(--display); font-weight:400; font-size:13.5px;
   margin:0; color:rgba(255,255,255,.9);
@@ -331,18 +333,58 @@ h3.serif{ font-size:27px; line-height:1.2; }
 .section-scrim{ position:absolute; inset:0; z-index:1; background:rgba(255,255,255,.10); }
 .section-scrim.dark{ background:rgba(16,16,16,.48); }
 
-/* hero */
-#hero .hero-content{ position:relative; z-index:3; text-align:center; color:var(--white); padding:0 24px; }
-#hero .kicker{ margin-bottom:14px; }
-#hero{ background:linear-gradient(180deg, rgba(16,16,16,.18), rgba(16,16,16,.30)); }
-.scroll-cue{
-  position:absolute; bottom:64px; left:50%; transform:translateX(-50%);
-  z-index:3; color:var(--white); opacity:.85;
-  animation:cueBounce 2.2s ease-in-out infinite;
+/* ── reveal system, the engagement's ───────────────────────────
+   Elements carry .reanimate plus .fade and a .delayNms stagger. main.js
+   adds .in-view while an element is on screen and REMOVES it when it
+   leaves, so the page replays its stagger every time you come back. */
+.fade{ opacity:0; transition:opacity 2s; }
+.fade.reanimate.in-view{ opacity:1; transition:opacity 2s; }
+.delay200ms{ transition-delay:.2s !important; }
+.delay400ms{ transition-delay:.4s !important; }
+.delay600ms{ transition-delay:.6s !important; }
+.delay1000ms{ transition-delay:1s !important; }
+
+/* hero — the engagement's first page, over the wedding's video */
+.hero{ color:var(--white); text-align:center; padding:74px 24px; }
+.hero .bg-scrim{
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(rgba(0,0,0,.30) 0%, rgba(0,0,0,.42) 50%, rgba(0,0,0,.62) 100%);
 }
-@keyframes cueBounce{
-  0%,100%{ transform:translateX(-50%) translateY(0); opacity:.85; }
-  50%{ transform:translateX(-50%) translateY(10px); opacity:.35; }
+.hero-inner{ position:relative; z-index:2; max-width:520px; }
+.names-centred{ position:relative; display:flex; flex-direction:column; align-items:center; }
+.names-centred .name-lg{
+  font-family:var(--display); font-weight:500;
+  font-size:clamp(46px,13vw,74px); line-height:.98; margin:0;
+}
+.amp-centred{
+  font-family:var(--milton); font-weight:700;
+  font-size:clamp(58px,16vw,87px);
+  color:rgba(255,255,255,.4); margin:-.42em 0 -.34em; line-height:.8;
+}
+.scroll-cue{
+  position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:10px; z-index:2;
+}
+.scroll-cue span{
+  writing-mode:vertical-rl; font-size:9.5px; letter-spacing:3px;
+  color:rgba(255,255,255,.6);
+}
+/* the line draws downward, erases downward, and rests until the 2s loop */
+.scroll-cue i{
+  width:1px; height:34px; background:rgba(255,255,255,.6);
+  animation:cue-line 2s ease-in-out infinite;
+}
+@keyframes cue-line{
+  0%    { clip-path:inset(0 0 100% 0); }
+  43.3% { clip-path:inset(0 0 0 0); }
+  63.3% { clip-path:inset(100% 0 0 0); }
+  100%  { clip-path:inset(100% 0 0 0); }
+}
+@media (min-width:1025px){
+  .hero-inner{ max-width:620px; }
+  .names-centred .name-lg{ font-size:78px; }
+  .amp-centred{ font-size:79px; }
+  .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
 /* dear guest */

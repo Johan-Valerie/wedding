@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    Johan & Valerie — placeholder invitation
-   Motion study: the engagement's intro + cover, split-text loops,
+   Motion study: the engagement's intro, cover, first page and menu,
    scroll-snap deck, audio system, gallery + lightbox
    ═══════════════════════════════════════════════════════════════ */
 (function () {
@@ -168,23 +168,33 @@
     window.addEventListener('resize', fit);
   })();
 
-  /* ── split-text loops (GSAP + SplitText) ─────────────────── */
-  function initSplitLoops() {
-    if (typeof gsap === 'undefined' || typeof SplitText === 'undefined') return;
-    gsap.registerPlugin(SplitText);
-    function loopIn(selector, fromX, delay) {
-      var el = $(selector);
-      if (!el) return;
-      var split = new SplitText(el, { type: 'chars' });
-      gsap.timeline({ repeat: -1, repeatDelay: 2.2, delay: delay || 0 })
-        .from(split.chars, { x: fromX, opacity: 0, duration: 0.7, ease: 'power3.out', stagger: 0.035 })
-        .to(split.chars, { opacity: 0, duration: 0.6, ease: 'power2.inOut', stagger: 0.012 }, '+=2.6');
-    }
-    loopIn('.split-kicker-hero', 13, 0);
-    loopIn('.split-names-hero', -13, 0.15);
+  /* ── scroll reveals (the engagement's) ───────────────────── */
+  /* Elements carry .reanimate + .fade + a .delayNms stagger. Adding .in-view
+     plays the fade and removing it rewinds, so a page replays its stagger
+     every time you come back to it. Measured from element rects on each
+     scroll frame, so it always matches what is really on screen. */
+  var reveals = [];
+  function syncReveals() {
+    var top = 10, bottom = window.innerHeight - 10;
+    reveals.forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      el.classList.toggle('in-view', r.top < bottom && r.bottom > top);
+    });
   }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(initSplitLoops);
-  else initSplitLoops();
+  var revealTick = false;
+  function queueReveals() {
+    if (revealTick) return;
+    revealTick = true;
+    requestAnimationFrame(function () { revealTick = false; syncReveals(); });
+  }
+  /* Armed on open, not at load: the hero sits behind the cover, and marking
+     it visible early would burn its fade where nobody can see it. */
+  function armReveals() {
+    reveals = $$('.reanimate');
+    syncReveals();
+    window.addEventListener('scroll', queueReveals, { passive: true });
+    window.addEventListener('resize', queueReveals);
+  }
 
   /* ── open invitation ─────────────────────────────────────── */
   var cover = $('#cover-section');
@@ -200,6 +210,7 @@
     }
     enableScrolling();
     playAudio();
+    armReveals();
     var video = $('#video-backdrop');
     if (video) video.play().catch(function () {});
 
