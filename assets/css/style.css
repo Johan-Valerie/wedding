@@ -500,12 +500,15 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .address{ font-weight:300; font-size:13px; line-height:1.5; color:rgba(255,255,255,.85); margin:0 0 16px; }
 .venue + .pill-row{ margin-top:12px; }   /* the cocktail has no room line */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
-/* the engagement's pill; two share a row here, so a little less padding */
-.pill-row{ display:flex; gap:10px; justify-content:center; }
+/* The engagement's pill, sized down for a pair: one size in every layout,
+   and both buttons the same width, so each card ends in a matched pair
+   rather than a big and a small button. 140px holds ADD TO CALENDAR
+   (113px of label) with even air either side. */
+.pill-row{ display:grid; grid-template-columns:repeat(2, 140px); gap:10px; justify-content:center; }
 .pill{
   display:inline-flex; align-items:center; justify-content:center;
-  border-radius:100px; padding:12px 18px 11px;
-  font-family:var(--ui); font-weight:600; font-size:12px; letter-spacing:.8px;
+  border-radius:100px; padding:9px 0 8px;
+  font-family:var(--ui); font-weight:600; font-size:10.5px; letter-spacing:1px;
   color:var(--white); text-decoration:none; white-space:nowrap;
   backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
   transition:background .25s, transform .25s;
@@ -535,7 +538,6 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events.three .venue, #events.three .address{ display:inline; font-size:13px; }
   #events.three .address::before{ content:"\00b7"; margin:0 7px; }
   #events.three .pill-row, #events.three .venue + .pill-row{ margin-top:8px; }
-  #events.three .pill{ padding:8px 14px 7px; font-size:10.5px; }
   #events.three .event-divider{ height:10px; margin:5px 0; }
 }
 .btn{
@@ -792,6 +794,5 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events .venue, #events .address{ display:inline; font-size:13px; }
   #events .address::before{ content:"\00b7"; margin:0 7px; }
   #events .pill-row, #events .venue + .pill-row{ margin-top:8px; }
-  #events .pill{ padding:8px 14px 7px; font-size:10.5px; }
   #events .event-divider{ height:10px; margin:5px 0; }
 }
