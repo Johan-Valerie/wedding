@@ -66,6 +66,9 @@
   var iconPause = $('#icon-pause');
   var opened = false;
 
+  /* 0.46, as on the engagement: this track is mastered loud (-9.5 LUFS), so
+     full volume would play it noticeably louder than intended. */
+  if (song) song.volume = 0.46;
   function playAudio() { if (song) song.play().catch(function () {}); }
   function pauseAudio() { if (song) song.pause(); }
   function syncSoundIcon() {
