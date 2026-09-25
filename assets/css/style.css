@@ -716,6 +716,51 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .nights-note.ok{ color:#5f6b52; }        /* fully hosted — soft olive */
 .nights-note.pay strong{ color:var(--ink); font-weight:600; }
 
+/* RSVP, information and guest details — windows onto the video, as the
+   wishes page is: a darker veil than the photo pages, for the small form
+   type, then white text and light lines, fields and buttons. All of it is
+   keyed to .rsvp-page, so an older cached page keeps its white look. */
+.child.rsvp-page{ background:transparent; color:var(--white); color-scheme:dark; }
+.rsvp-page .section-scrim{ background:rgba(10,10,10,.62); }
+.rsvp-page .muted, .rsvp-page .field-label, .rsvp-page .optional,
+.rsvp-page .info-card .micro, .rsvp-page .notes-card .micro{ color:rgba(255,255,255,.62); }
+.rsvp-page .optional.req{ color:var(--white); }
+.rsvp-page .note{ color:rgba(255,255,255,.6); }
+.rsvp-page .hairline{ background:var(--hairline-light); }
+.rsvp-page #rsvp-form input[type=text], .rsvp-page #rsvp-form textarea,
+.rsvp-page #details-form input[type=date], .rsvp-page #details-form select{
+  color:var(--white); border-color:rgba(255,255,255,.3);
+}
+.rsvp-page #rsvp-form input[type=text]:focus, .rsvp-page #rsvp-form textarea:focus,
+.rsvp-page #details-form input[type=date]:focus, .rsvp-page #details-form select:focus{
+  border-color:rgba(255,255,255,.75);
+}
+.rsvp-page ::placeholder{ color:rgba(255,255,255,.42); }
+.rsvp-page .radio input + span{ border-color:rgba(255,255,255,.3); color:rgba(255,255,255,.72); }
+.rsvp-page .radio input:checked + span,
+.rsvp-page .radio-col .radio input:checked + span{
+  border-color:var(--white); color:var(--white); background:rgba(255,255,255,.16);
+}
+.rsvp-page .radio-col .radio span strong{ color:var(--white); }
+.rsvp-page .radio-col .radio span em,
+.rsvp-page .radio-col .radio span em a{ color:rgba(255,255,255,.62); }
+.rsvp-page .stepper{ border-color:rgba(255,255,255,.3); }
+.rsvp-page .stepper button, .rsvp-page .stepper input{ color:var(--white); }
+.rsvp-page .btn.solid{ background:var(--white); color:var(--ink); border-color:var(--white); }
+.rsvp-page .btn.solid:hover{ background:transparent; color:var(--white); }
+.rsvp-page .btn.ghost{ color:var(--white); border-color:rgba(255,255,255,.5); }
+.rsvp-page .btn.ghost:hover{ background:rgba(255,255,255,.14); color:var(--white); }
+.rsvp-page .info-card, .rsvp-page .notes-card{
+  border-color:rgba(255,255,255,.22); border-left-color:rgba(229,224,216,.7);
+  background:rgba(18,18,18,.34);
+}
+.rsvp-page .info-card .body, .rsvp-page .notes-card li,
+.rsvp-page .nights-note, .rsvp-page #details-summary{ color:rgba(255,255,255,.85); }
+.rsvp-page .info-card .body strong, .rsvp-page .notes-card li strong,
+.rsvp-page .nights-note.pay strong{ color:var(--white); }
+.rsvp-page .nights-note.ok{ color:#c5d0b2; }   /* the olive, lifted for a dark page */
+.rsvp-page .dress-figure img{ border-radius:2px; }   /* a light print on the dark card */
+
 /* wishes — sits over the video backdrop, so everything reads light */
 #wishes h2{ margin-bottom:20px; color:var(--white); }
 #wishes .eyebrow{ color:var(--white); }

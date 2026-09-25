@@ -295,9 +295,14 @@
   });
 
   /* ── light-page contrast for the menu and music buttons ──── */
-  /* Pages without a photo or the video behind them are white. */
+  /* A page is white unless it has a photo or is a window onto the video.
+     The window test reads the page's own background, so the stylesheet
+     decides: the RSVP steps are windows there, and a cached older copy that
+     still paints them white gets the ink buttons it needs. */
   function isLight(sec) {
-    return !!sec && !sec.classList.contains('photo-section') && !sec.classList.contains('window');
+    if (!sec || sec.classList.contains('photo-section')) return false;
+    var bg = getComputedStyle(sec).backgroundColor;
+    return bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)';
   }
   function sectionAt(sections, y) {
     for (var i = 0; i < sections.length; i++) {
