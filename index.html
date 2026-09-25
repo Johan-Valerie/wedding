@@ -26,7 +26,6 @@
 
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -434,19 +433,23 @@
     </div>
   </section>
 
-  <!-- 12 · GALLERY -->
-  <section class="child" id="gallery">
-    <div class="content wide" data-aos="fade">
-      <p class="eyebrow">OUR MOMENTS</p>
-      <h2 class="serif">Johan &amp; Valerie</h2>
-      <div class="swiper" id="gallery-swiper">
-        <div class="swiper-wrapper">
-          <!-- slides injected by main.js (gallery-01..18) -->
-        </div>
-        <div class="swiper-pagination"></div>
-      </div>
-      <p class="note center">Tap image for preview</p>
+  <!-- 12 · GALLERY — the engagement's page, over the video: two strips of
+       photos drifting opposite ways (filled and driven by main.js, from
+       gallery-01..18), the title between them, and a verse to close. A tap
+       opens the photo viewer; a swipe scrolls the strip. -->
+  <section class="child gallery" id="gallery">
+    <div class="section-scrim"></div>
+    <div class="marquee reanimate fade delay200ms" data-dir="left">
+      <div class="marquee-track" id="row-a"></div>
     </div>
+    <h2 class="gallery-title reanimate fade delay400ms">Moments in Time</h2>
+    <p class="gallery-hint hint-tap reanimate fade delay500ms">Tap image for slideshow view</p>
+    <div class="marquee reanimate fade delay600ms" data-dir="right">
+      <div class="marquee-track" id="row-b"></div>
+    </div>
+    <p class="gallery-hint hint-swipe reanimate fade delay700ms">Swipe to see more</p>
+    <p class="gallery-quote reanimate fade delay800ms">&ldquo;I have found the one whom my soul loves.&rdquo;</p>
+    <p class="gallery-cite reanimate fade delay900ms">SONG OF SOLOMON 3:4</p>
   </section>
 
   <!-- 13 · CLOSING -->
@@ -478,7 +481,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script src="assets/js/main.js"></script>
 </body>
 </html>

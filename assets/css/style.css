@@ -372,7 +372,6 @@ h3.serif{ font-size:22px; line-height:1.2; }
   position:relative; z-index:3; text-align:center;
   padding:32px 26px; width:100%; max-width:400px;
 }
-.child .content.wide{ max-width:100%; padding:24px 0; }
 /* Playfair sets old-style figures by default; capitals and counters want
    lining ones ("MATTHEW 19 : 6", the countdown, the guest count) */
 .child .eyebrow{ margin-bottom:14px; font-variant-numeric:lining-nums; }
@@ -401,6 +400,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .delay500ms{ transition-delay:.5s !important; }
 .delay600ms{ transition-delay:.6s !important; }
 .delay700ms{ transition-delay:.7s !important; }
+.delay800ms{ transition-delay:.8s !important; }
+.delay900ms{ transition-delay:.9s !important; }
 .delay1000ms{ transition-delay:1s !important; }
 
 /* hero — the engagement's first page, over the wedding's video */
@@ -781,18 +782,68 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #wishes .btn.ghost{ color:var(--white); border-color:rgba(255,255,255,.5); }
 #wishes .btn.ghost:hover{ background:rgba(255,255,255,.14); color:var(--white); }
 
-/* gallery */
-#gallery-swiper{ width:100%; margin-top:6px; }
-#gallery-swiper .swiper-slide{ width:72%; }
-#gallery-swiper .swiper-slide .frame{
-  border:1px solid var(--hairline); padding:7px; background:var(--white);
+/* gallery — the engagement's page: a window onto the video under its
+   heavy veil, two strips of photos drifting opposite ways, the title
+   between them, and a verse to close. Each strip is a real horizontal
+   scroller that main.js drifts by nudging scrollLeft, so a swipe always
+   takes over. Keyed to .gallery, so an older cached page stays white. */
+.child.gallery{
+  background:transparent; color:var(--white);
+  flex-direction:column; align-items:stretch; justify-content:center; gap:12px;
+  padding:74px 0;
 }
-#gallery-swiper img{ width:100%; aspect-ratio:2/3; object-fit:cover; cursor:pointer; }
-#gallery .swiper-pagination{
-  position:static; margin-top:14px;
-  font-family:var(--display); font-size:14px; color:var(--ink); font-variant-numeric:lining-nums;
+#gallery .section-scrim{ background:linear-gradient(rgba(0,0,0,.62) 0%, rgba(0,0,0,.72) 100%); }
+#gallery > :not(.section-scrim){ position:relative; z-index:2; }
+.marquee{
+  width:100%; flex:none;
+  overflow-x:auto; overflow-y:hidden;
+  overscroll-behavior-x:contain;   /* a swipe here never turns into a page swipe */
+  scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
-#gallery .note{ margin-top:10px; }
+.marquee::-webkit-scrollbar{ display:none; }
+.marquee-track{ display:flex; gap:12px; width:max-content; }
+.marquee img{
+  width:auto; max-width:none; object-fit:cover;   /* height: see below */
+  border-radius:2px; cursor:pointer; transition:opacity .3s;
+  -webkit-touch-callout:none;   /* a long press must not offer "Save Image" */
+}
+@media (hover:hover){ .marquee img:hover{ opacity:.82; } }
+.gallery-title{
+  font-family:var(--display); font-weight:500;
+  font-size:clamp(30px,9vw,38px); line-height:1.2; padding:0 24px;
+}
+.gallery-hint{
+  font-family:var(--serif-light); font-style:italic; font-size:12px;
+  color:rgba(255,255,255,.6); padding:0 24px;
+}
+.hint-swipe{ text-align:right; }
+.gallery-quote{
+  font-family:var(--script); font-size:clamp(20px,5.6vw,24px);
+  line-height:1.5; text-align:center; color:rgba(255,255,255,.92);
+  margin-top:14px; padding:0 30px;
+  text-wrap:balance;   /* phones never strand "loves." on a line of its own */
+}
+/* the groom/bride label's voice: Pinyon is unreadable at label size */
+.gallery-cite{
+  font-family:var(--ui); font-weight:600; font-size:10.5px; letter-spacing:2.6px;
+  text-align:center; color:rgba(241,193,147,.5);
+  margin-top:9px; padding:0 30px;
+}
+@media (min-width:768px) and (max-width:1023px){ .gallery-title, .gallery-hint{ padding:0 60px; } }
+/* The photos give way to a shorter screen, so the page always fits between
+   the monogram and the music button: everything else on it comes to
+   ~244px, the padding to 148px (plus a little air), and the two strips
+   share the rest. Full size (the engagement's 172px, 212px from a tablet
+   up) from ~745px. */
+.marquee img{ height:clamp(96px, calc((var(--vh) - 400px) / 2), 172px); }
+@media (min-width:768px){ .marquee img{ height:clamp(96px, calc((var(--vh) - 400px) / 2), 212px); } }
+@media (max-height:660px){
+  .child.gallery{ gap:9px; padding:64px 0 72px; }
+  .gallery-quote{ margin-top:6px; }
+  .marquee img{ height:clamp(90px, calc((var(--vh) - 362px) / 2), 172px); }
+}
 
 /* closing */
 .closing-line{ font-size:26px; line-height:1.45; margin-bottom:14px; }

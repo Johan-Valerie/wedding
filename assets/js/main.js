@@ -889,32 +889,113 @@
       .catch(function () {});
   }
 
-  /* ── gallery: swiper + custom lightbox ───────────────────── */
+  /* ── gallery: the engagement's two drifting strips + lightbox ── */
+  /* The strips show small WebP copies (gallery-NN-sm.webp); the viewer
+     opens the full JPEG. Photos 1-9 run in the top strip, 10-18 below. */
   var galleryImages = [];
-  var wrapper = $('#gallery-swiper .swiper-wrapper');
-  if (wrapper) {
-    for (var i = 1; i <= GALLERY_COUNT; i++) {
-      var src = 'assets/img/gallery-' + (i < 10 ? '0' + i : i) + '.jpg';
-      galleryImages.push(src);
-      var slide = document.createElement('div');
-      slide.className = 'swiper-slide';
-      var frame = document.createElement('div');
-      frame.className = 'frame';
-      var img = document.createElement('img');
-      img.src = src; img.alt = 'Johan & Valerie — moment ' + i; img.loading = 'lazy';
-      img.setAttribute('data-index', i - 1);
-      frame.appendChild(img); slide.appendChild(frame); wrapper.appendChild(slide);
-    }
+  for (var gi = 1; gi <= GALLERY_COUNT; gi++) {
+    galleryImages.push('assets/img/gallery-' + (gi < 10 ? '0' + gi : gi) + '.jpg');
   }
-  if (typeof Swiper !== 'undefined' && $('#gallery-swiper')) {
-    new Swiper('#gallery-swiper', {
-      slidesPerView: 'auto',
-      centeredSlides: true,
-      spaceBetween: 14,
-      loop: true,
-      speed: 1000,
-      autoplay: { delay: 1500, disableOnInteraction: false },
-      pagination: { el: '#gallery-swiper .swiper-pagination', type: 'fraction' }
+  var rowA = $('#row-a'), rowB = $('#row-b');
+  /* Only with the stylesheet that makes each strip a scroller: an older
+     cached copy would lay 36 unstyled photos down the page. */
+  var stripsOn = !!rowA && !!rowB && getComputedStyle(rowA.parentNode).overflowX === 'auto';
+
+  /* Each strip is laid down twice so the wrap at the halfway mark is
+     invisible. Only the first copy is reachable: the second is the same
+     photograph again, hidden from the keyboard and screen readers. */
+  function fillRow(track, from, to) {
+    var html = '';
+    for (var pass = 0; pass < 2; pass++) {
+      for (var i = from; i < to; i++) {
+        var thumb = galleryImages[i].replace('.jpg', '-sm.webp');
+        html += pass === 0
+          ? '<img src="' + thumb + '" alt="" loading="lazy" data-index="' + i + '" role="button" tabindex="0"' +
+            ' aria-label="Open photo ' + (i + 1) + ' of ' + galleryImages.length + '">'
+          : '<img src="' + thumb + '" alt="" loading="lazy" data-index="' + i + '" aria-hidden="true" tabindex="-1">';
+      }
+    }
+    track.innerHTML = html;
+  }
+
+  /* Each strip drifts on its own by nudging scrollLeft (the engagement's
+     driftRow). Driving the real scroll position is what keeps it usable on
+     a phone: a swipe takes over at once, and the drift resumes a moment
+     after the finger leaves. It rests while the page is off screen. */
+  function driftRow(row, dir, pxPerSecond) {
+    var realMouse = !!window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+    var hovering = false, resumeAt = 0, last = 0;
+    var pos = 0;   // the drift's own position, kept as a float (see tick)
+    function halfway() { return row.scrollWidth / 2; }
+    /* the right-hand strip travels backwards, so it starts on the second copy */
+    function seed() {
+      if (!row.scrollWidth) return;
+      pos = dir === 'right' ? halfway() : 0;
+      row.scrollLeft = pos;
+    }
+    seed();
+    window.addEventListener('load', seed);
+    function handOver() { resumeAt = performance.now() + 1600; }
+    ['touchstart', 'touchmove', 'touchend', 'wheel', 'pointerdown'].forEach(function (ev) {
+      row.addEventListener(ev, handOver, { passive: true });
+    });
+    /* Hover-pause only with a real mouse: iOS fires mouseenter on a tap
+       and never the mouseleave, which would stop the drift for good. */
+    if (realMouse) {
+      row.addEventListener('mouseenter', function () { hovering = true; });
+      row.addEventListener('mouseleave', function () { hovering = false; });
+    }
+    function tick(now) {
+      var dt = last ? Math.min((now - last) / 1000, 0.05) : 0;   // cap after a stall
+      last = now;
+      var half = halfway();
+      var free = !hovering && now >= resumeAt && !document.hidden &&
+                 row.classList.contains('in-view');
+      if (half > 0 && free) {
+        /* accumulated as a float, then written: reading scrollLeft back each
+           frame loses the sub-pixel remainder and a drift this slow stalls */
+        pos += (dir === 'left' ? 1 : -1) * pxPerSecond * dt;
+        /* wrap on the side the strip travels towards */
+        if (dir === 'left') { if (pos >= half) pos -= half; }
+        else if (pos <= 0) pos += half;
+        row.scrollLeft = pos;
+      } else {
+        pos = row.scrollLeft;   // a finger is in charge: follow it
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  if (stripsOn) {
+    fillRow(rowA, 0, 9);
+    fillRow(rowB, 9, GALLERY_COUNT);
+    driftRow(rowA.parentNode, 'left', 26);
+    driftRow(rowB.parentNode, 'right', 22);
+    /* A tap opens the viewer, a swipe only scrolls. The listener sits on
+       each photo: iOS delivers taps to the element itself far more
+       reliably than to a delegating parent. */
+    $$('.marquee').forEach(function (row) {
+      var sx = 0, sy = 0, swiped = false;
+      row.addEventListener('touchstart', function (e) {
+        var t = e.touches[0]; sx = t.clientX; sy = t.clientY; swiped = false;
+      }, { passive: true });
+      row.addEventListener('touchmove', function (e) {
+        var t = e.touches[0];
+        if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) swiped = true;
+      }, { passive: true });
+      $$('img', row).forEach(function (img) {
+        function open() { lbOpen(parseInt(img.getAttribute('data-index'), 10) || 0); }
+        img.addEventListener('click', function () {
+          if (swiped) { swiped = false; return; }
+          open();
+        });
+        img.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+          e.preventDefault();   // Space would otherwise scroll the page
+          open();
+        });
+      });
     });
   }
 
@@ -937,12 +1018,6 @@
     lb.classList.remove('open');
     setTimeout(function () { lb.hidden = true; }, 300);
   }
-  document.addEventListener('click', function (e) {
-    var t = e.target;
-    if (t && t.matches && t.matches('#gallery-swiper img')) {
-      lbOpen(parseInt(t.getAttribute('data-index'), 10) || 0);
-    }
-  });
   if (lb) {
     $('#lightbox-close').addEventListener('click', lbClose);
     $('#lightbox-prev').addEventListener('click', function () { lbShow(lbIndex - 1); });
