@@ -395,15 +395,17 @@ h3.serif{ font-size:27px; line-height:1.2; }
 }
 
 /* dear guest */
-/* No card: white text set low over a dark foot (the groom/bride pages'
-   gradient), so the couple's faces stay clear and the photo stays bright. */
+/* No card: ink text set low, where the photo fades to white, so the
+   couple's faces stay clear. The sky above is pale too, so .light-ui turns
+   the monogram and the music button ink here, as on the white pages. */
 #dear{ align-items:flex-end; }
 #dear .section-scrim{
-  background:linear-gradient(rgba(0,0,0,.18) 0%, rgba(0,0,0,.30) 38%, rgba(0,0,0,.90) 100%);
+  background:linear-gradient(rgba(255,255,255,0) 42%, rgba(255,255,255,.78) 64%, rgba(255,255,255,.88) 100%);
 }
-#dear .content{ padding:34px 26px 74px; max-width:330px; }
+#dear .content{ padding:34px 26px 74px; max-width:330px; color:var(--ink); }
+#dear .hairline{ background:rgba(41,41,41,.3); }
 #dear h2{ font-size:29px; margin-top:4px; }
-#dear .micro.muted{ margin-top:12px; font-size:9px; }
+#dear .micro.muted{ margin-top:12px; font-size:9px; color:var(--ink-2); }
 
 /* verse */
 .verse-text{ font-size:21px; line-height:1.65; margin-top:10px; }

@@ -285,9 +285,12 @@
   });
 
   /* ── light-page contrast for the menu and music buttons ──── */
-  /* Pages without a photo or the video behind them are white. */
+  /* Pages without a photo or the video behind them are white, and so is a
+     .light-ui photo page (pale sky above, faded to white below). */
   function isLight(sec) {
-    return !!sec && !sec.classList.contains('photo-section') && !sec.classList.contains('window');
+    if (!sec) return false;
+    if (sec.classList.contains('light-ui')) return true;
+    return !sec.classList.contains('photo-section') && !sec.classList.contains('window');
   }
   function sectionAt(sections, y) {
     for (var i = 0; i < sections.length; i++) {
