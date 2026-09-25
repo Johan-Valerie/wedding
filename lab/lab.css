@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════
+   LAB — see-through Safari bars (test copy only, never the live page)
+
+   iOS 26 Safari paints its status bar and toolbar a solid colour only when
+   a position:fixed (or sticky) element touches that edge; otherwise the
+   page itself scrolls visibly behind the glass. So this copy keeps nothing
+   fixed at an edge: the document scrolls again (no app shell), the video
+   lives inside the page on screen, and the closed menu is display:none
+   (Safari samples even invisible fixed layers).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* main.js sets html.shell; keep the document scrolling instead, so main.js
+   sees a non-fixed #invitation and runs its document mode */
+html.shell, html.shell body{ height:auto !important; overflow:visible !important; }
+html.shell body{ overflow-x:hidden !important; }
+html.shell #invitation{
+  position:relative !important; inset:auto !important;
+  overflow:clip !important;   /* the first and last pages' bleed never adds scroll room */
+}
+html.shell .child{ height:var(--vh) !important; }
+
+/* the one video, carried by lab.js into whichever video page is on screen */
+.window > #video-backdrop{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; z-index:0;
+}
+#film .film-caption{ position:relative; z-index:2; }
+
+/* the menu: gone from the layout while closed, fades in when opened */
+.nav-menu:not(.open){ display:none; }
+@starting-style{ .nav-menu.open{ opacity:0; } }
+
+/* ── bleed: the page's own photo continued under the bars ──────────
+   One layer per page, placed by lab.js from the page's top minus 140px
+   to its bottom plus 140px. Only the page at rest shows its layer, above
+   its neighbours and below its own content; it is a blurred copy of the
+   page's photo and shading, which is all the frosted bars let through
+   anyway, and the page's own framing is untouched. Hidden while
+   scrolling, so it never slides into view. */
+#invitation > .child{ z-index:1; }
+#invitation > .child.lab-current{ z-index:3; }
+.bleed{
+  position:absolute; left:0; right:0; z-index:2;
+  opacity:0; transition:opacity .12s ease; pointer-events:none;
+  overflow:hidden;
+}
+.bleed.on{ opacity:1; transition:opacity .35s ease; }
+.bleed-fill{
+  position:absolute; inset:-30px;
+  background-size:cover; background-position:center;
+  filter:blur(18px);
+}
+.bleed-scrim{ position:absolute; inset:0; }
+
+/* ?debug=1 — screen measurements for tuning */
+#lab-debug{
+  position:fixed; left:12px; top:50%; transform:translateY(-50%);
+  width:62%; z-index:2000; padding:10px 12px;
+  background:rgba(0,0,0,.72); color:#fff; border-radius:6px;
+  font:11px/1.5 ui-monospace, Menlo, monospace; white-space:pre-wrap;
+  pointer-events:none;
+}
