@@ -52,14 +52,32 @@
 
 *{ margin:0; padding:0; box-sizing:border-box; }
 [hidden]{ display:none !important; }
-html{ scroll-behavior:smooth; }           /* snap type is enabled from JS after open */
+/* Black canvas: it is what Safari shows under its status bar and its bottom
+   toolbar, so both read as black bars instead of white ones. */
+html{ scroll-behavior:smooth; background:#000; }   /* snap type is enabled from JS after open */
 body{
   font-family:var(--ui);
   color:var(--ink);
-  background:var(--white);
+  background:#000;
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
+/* App shell, as on the engagement. iOS Safari paints whatever the DOCUMENT
+   has below the fold behind its translucent toolbar, and with one-screen
+   pages that is the next page's top, or white. So the document never
+   scrolls: it is exactly one screen of black canvas, and the pages scroll
+   inside #invitation, a fixed full-screen box. main.js sets html.shell, so
+   a phone still holding the previous main.js (the two files are cached
+   separately) keeps the old document scrolling instead of a frozen page. */
+html.shell, html.shell body{ height:100%; overflow:hidden; }
+html.shell #invitation{
+  position:fixed; inset:0;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:none;
+}
+html.shell #invitation::-webkit-scrollbar{ display:none; }
+html.shell .child{ height:100%; }
+#invitation:focus{ outline:none; }   /* focused on open, so the keyboard scrolls it */
 body::-webkit-scrollbar{ display:none; }
 body{ scrollbar-width:none; }
 img{ max-width:100%; display:block; }
@@ -746,6 +764,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   .panel-caption .micro{ letter-spacing:2.4px; font-size:10px; }
 
   #invitation{ margin-left:auto; width:var(--col-w); border-left:1px solid var(--hairline-light); }
+  html.shell #invitation{ left:auto; }
   #video-backdrop{ width:var(--col-w); }
   /* bottom left of the invitation column, not over the side panel's caption */
   #sound-toggle{ left:calc(100vw - var(--col-w) + 20px); }

@@ -98,20 +98,28 @@
     else { playAudio(); if (video) video.play().catch(function () {}); }
   });
 
-  /* ── scroll lock while cover is up ───────────────────────── */
-  window.onbeforeunload = function () { window.scrollTo(0, 0); };
-  function disableScrolling() {
-    var x = window.scrollX, y = window.scrollY;
-    window.onscroll = function () { window.scrollTo(x, y); };
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
+  /* ── the scroller (app shell, as on the engagement) ───────── */
+  /* The pages scroll inside #invitation, a fixed full-screen box, and the
+     document stays still on its black canvas, so Safari's bars sit on black
+     (see style.css). The CSS only switches that on under html.shell, set
+     here; with an older stylesheet (cached separately from this file) the
+     computed position is not fixed and everything below drives the
+     document instead, exactly as before. */
+  var scroller = $('#invitation');
+  document.documentElement.classList.add('shell');
+  var shell = !!scroller && getComputedStyle(scroller).position === 'fixed';
+  var scrollRoot = shell ? scroller : (document.scrollingElement || document.documentElement);
+  var scrollSource = shell ? scroller : window;
+  function setSnap(on) { scrollRoot.style.scrollSnapType = on ? 'y mandatory' : 'none'; }
+
+  /* scroll lock while cover is up */
+  window.onbeforeunload = function () { scrollRoot.scrollTop = 0; };
+  function lockScroll(on) {
+    if (shell) scroller.style.overflowY = on ? 'hidden' : '';
+    else document.body.style.overflow = on ? 'hidden' : '';
   }
-  function enableScrolling() {
-    window.onscroll = null;
-    document.body.style.overflow = '';
-    document.body.style.height = '';
-  }
-  disableScrolling();
+  scrollRoot.scrollTop = 0;
+  lockScroll(true);
 
   /* ── intro (the engagement's): four CSS beats, then the cover ── */
   var preloader = $('#preloader');
@@ -178,14 +186,18 @@
   /* Elements carry .reanimate + .fade + a .delayNms stagger. Adding .in-view
      plays the fade and removing it rewinds, so a page replays its stagger
      every time you come back to it. Measured from element rects on each
-     scroll frame, so it always matches what is really on screen. */
-  var reveals = [];
+     scroll frame, so it always matches what is really on screen — an
+     IntersectionObserver misreports targets inside a fixed scroller on iOS
+     Safari. The AOS blocks ([data-aos]) are played the same way. */
+  var reveals = [], aosBlocks = [];
   function syncReveals() {
     var top = 10, bottom = window.innerHeight - 10;
-    reveals.forEach(function (el) {
+    function onScreen(el) {
       var r = el.getBoundingClientRect();
-      el.classList.toggle('in-view', r.top < bottom && r.bottom > top);
-    });
+      return r.top < bottom && r.bottom > top;
+    }
+    reveals.forEach(function (el) { el.classList.toggle('in-view', onScreen(el)); });
+    aosBlocks.forEach(function (el) { el.classList.toggle('aos-animate', onScreen(el)); });
   }
   var revealTick = false;
   function queueReveals() {
@@ -197,8 +209,9 @@
      it visible early would burn its fade where nobody can see it. */
   function armReveals() {
     reveals = $$('.reanimate');
+    aosBlocks = $$('[data-aos]');
     syncReveals();
-    window.addEventListener('scroll', queueReveals, { passive: true });
+    scrollSource.addEventListener('scroll', queueReveals, { passive: true });
     window.addEventListener('resize', queueReveals);
   }
 
@@ -209,12 +222,13 @@
     if (opened) return;
     opened = true;
 
-    document.documentElement.style.scrollSnapType = 'none';
+    setSnap(false);
     if (cover) {                              // the engagement's exit: fade + a slight zoom
       cover.classList.add('hidden');
       setTimeout(function () { if (cover.parentNode) cover.parentNode.removeChild(cover); }, 1000);
     }
-    enableScrolling();
+    lockScroll(false);
+    if (shell) scroller.focus({ preventScroll: true });   // arrow keys / space scroll the pages
     playAudio();
     armReveals();
     var video = $('#video-backdrop');
@@ -226,21 +240,12 @@
 
     var hero = $('#hero');
     if (hero) hero.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(function () {
-      document.documentElement.style.scrollSnapType = 'y mandatory';
-    }, 600);
+    setTimeout(function () { setSnap(true); }, 600);
   });
 
-  /* ── AOS + replay-on-every-pass observer ─────────────────── */
+  /* ── AOS: its fade styles; syncReveals decides what is on screen ── */
   if (typeof AOS !== 'undefined') {
     AOS.init({ duration: 800, easing: 'ease', once: false, offset: 60 });
-    var aosObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.intersectionRatio > 0) entry.target.classList.add('aos-animate');
-        else entry.target.classList.remove('aos-animate');
-      });
-    });
-    $$('[data-aos]').forEach(function (el) { aosObserver.observe(el); });
   }
 
   /* ── menu (the engagement's): monogram button + full-screen list ── */
@@ -268,23 +273,22 @@
       setNavOpen(false);
       if (!target) return;
 
-      var root = document.documentElement;
-      root.style.scrollSnapType = 'none';
+      setSnap(false);
       target.scrollIntoView({ behavior: 'smooth' });
       clearInterval(navSettleWatch);
       var last = -1, still = 0, t0 = Date.now();
       navSettleWatch = setInterval(function () {
-        var goal = Math.round(target.getBoundingClientRect().top + window.scrollY);
-        var y = Math.round(window.scrollY);
+        var y = Math.round(scrollRoot.scrollTop);
+        var goal = Math.round(target.getBoundingClientRect().top + scrollRoot.scrollTop);
         var stalled = y === last && ++still >= 3;
         if (y !== last) { still = 0; last = y; }
         if (Math.abs(y - goal) < 2 || Date.now() - t0 > 4000) {
           clearInterval(navSettleWatch);
-          window.scrollTo(0, goal);
-          root.style.scrollSnapType = 'y mandatory';
+          scrollRoot.scrollTo(0, goal);
+          setSnap(true);
         } else if (stalled) {
           still = 0;
-          window.scrollTo({ top: goal, behavior: 'smooth' });
+          scrollRoot.scrollTo({ top: goal, behavior: 'smooth' });
         }
       }, 100);
     });
@@ -309,7 +313,7 @@
     if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43)));
     if (soundBtn) soundBtn.classList.toggle('on-light', isLight(sectionAt(sections, window.innerHeight - 41)));
   }
-  window.addEventListener('scroll', onScroll, { passive: true });
+  scrollSource.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   onScroll();
 
@@ -468,11 +472,9 @@
 
   function scrollToSection(el) {
     if (!el) return;
-    document.documentElement.style.scrollSnapType = 'none';
+    setSnap(false);
     el.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(function () {
-      document.documentElement.style.scrollSnapType = 'y mandatory';
-    }, 1600);
+    setTimeout(function () { setSnap(true); }, 1600);
   }
   function unlockInfo(scroll) {
     if (!infoSection) return;
