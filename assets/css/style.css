@@ -9,7 +9,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* Pinyon Script — the one script: the couple's names on the cover, the
-   groom and bride pages, the ghost ampersands and the gallery verse.
+   groom and bride pages, and the gallery verse.
    Self-hosted as on the engagement: a device that failed to fetch it from
    Google fell back to whatever "cursive" means locally (Snell Roundhand on
    iOS). */
@@ -19,6 +19,24 @@
   font-weight:400;
   font-style:normal;
   font-display:swap;
+}
+/* Every "&" on the page is Playfair Display Italic's: one 1KB file holding
+   that single glyph (Google's text=& subset, SIL Open Font License), first
+   in each of the stacks below. unicode-range limits it to U+0026, so every
+   other character, and the line metrics, still come from the face after
+   it. Declared for both styles and every weight, so the browser never
+   slants or emboldens a glyph that is already italic. */
+@font-face{
+  font-family:"JV Ampersand";
+  src:url("../fonts/Ampersand.woff2") format("woff2");
+  unicode-range:U+0026;
+  font-weight:100 900; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"JV Ampersand";
+  src:url("../fonts/Ampersand.woff2") format("woff2");
+  unicode-range:U+0026;
+  font-weight:100 900; font-style:italic; font-display:swap;
 }
 
 :root{
@@ -32,12 +50,13 @@
   --col-w:430px;
   --vh:100vh;
 
-  /* the four faces: UI text, labels + headings, soft lines, names. Plain
-     Cormorant stands in for Cormorant Garamond on an older cached page. */
-  --ui:"Poppins",system-ui,sans-serif;
-  --display:"Playfair Display",Georgia,serif;
-  --serif-light:"Cormorant Garamond","Cormorant",Georgia,serif;
-  --script:"Pinyon Script",cursive;
+  /* the four faces: UI text, labels + headings, soft lines, names, each
+     led by the shared ampersand. Plain Cormorant stands in for Cormorant
+     Garamond on an older cached page. */
+  --ui:"JV Ampersand","Poppins",system-ui,sans-serif;
+  --display:"JV Ampersand","Playfair Display",Georgia,serif;
+  --serif-light:"JV Ampersand","Cormorant Garamond","Cormorant",Georgia,serif;
+  --script:"JV Ampersand","Pinyon Script",cursive;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -95,7 +114,7 @@ button, input, select, textarea{ font-family:inherit; }
 /* ── type voices ─────────────────────────────────────────────── */
 .serif, .names{ font-family:var(--display); font-weight:500; }
 .serif-italic{ font-family:var(--serif-light); font-style:italic; font-weight:400; }
-.script{ font-family:'Pinyon Script',cursive; font-weight:400; }
+.script{ font-family:var(--script); font-weight:400; }
 
 .kicker{ font-size:10px; letter-spacing:1.8px; text-transform:uppercase; line-height:17px; }
 .micro{ font-size:11px; letter-spacing:1px; text-transform:uppercase; line-height:1.7; }
@@ -252,12 +271,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* tucked up so Valerie's capital sits in the curve of Johan's line */
 .names-stagger .name-lg:last-of-type{ transform:translateX(14px); margin-top:-.1em; }
 /* Ghost ampersand behind the seam; the negative margins give it no height.
-   Cormorant Garamond's italic one, here and on the first page: Pinyon's own
-   "&" is a small Et-form that reads as a broken stroke at ghost strength. */
+   The site's one "&" (Playfair Display Italic, see the top of this file),
+   as on the first page. */
 .amp-lg{
-  font-family:var(--serif-light); font-style:italic; font-weight:400;
-  font-size:calc(clamp(46px,14.2vw,86px) * 1.75);
-  color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
+  font-family:var(--display); font-style:normal; font-weight:400;
+  font-size:calc(clamp(46px,14.2vw,86px) * 1.6);
+  color:rgba(255,255,255,.4); margin:-.62em 0 -.38em; line-height:1; pointer-events:none;
 }
 .cover-top .datestrip{ margin-top:6.6px; }   /* the script's line box already leaves room under Valerie */
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
@@ -415,9 +434,9 @@ h3.serif{ font-size:22px; line-height:1.2; }
   font-size:clamp(40px,11.4vw,65px); line-height:.98; margin:0;
 }
 .amp-centred{
-  font-family:var(--serif-light); font-style:italic; font-weight:400;
-  font-size:clamp(72px,20vw,108px);
-  color:rgba(255,255,255,.4); margin:-.44em 0 -.36em; line-height:.8;
+  font-family:var(--display); font-style:normal; font-weight:400;
+  font-size:clamp(66px,18vw,98px);
+  color:rgba(255,255,255,.4); margin:-.46em 0 -.34em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -442,7 +461,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred .name-lg{ font-size:68px; }
-  .amp-centred{ font-size:115px; }
+  .amp-centred{ font-size:105px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
@@ -471,7 +490,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .person{
   flex-direction:column; align-items:stretch; justify-content:flex-end;
   padding:74px 24px; color:var(--white);
-  font-family:'Poppins',system-ui,sans-serif; font-weight:300;
+  font-family:var(--ui); font-weight:300;
 }
 /* portraits are bright frames — they need a much heavier foot */
 .scrim-person{
