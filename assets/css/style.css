@@ -1,15 +1,26 @@
 /* ═══════════════════════════════════════════════════════════════
    Johan & Valerie — placeholder invitation
    Art style study: monochrome editorial, hairlines, no shadows,
-   frosted glass. Four typefaces: Poppins for running text,
-   Playfair Display for labels and headings, Cormorant Garamond
-   for the soft italic lines, Pinyon Script for the couple's names
-   (the intro, cover, first page and groom/bride pages are the
-   engagement invitation's own design)
+   frosted glass. Typefaces: Poppins for running text, Playfair
+   Display for labels and headings, Cormorant Garamond for the soft
+   italic lines, Milton One for the cover names, Pinyon Script for
+   the groom/bride names (the intro, cover, first page and
+   groom/bride pages are the engagement invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
 
-/* Pinyon Script — the one script: the couple's names on the cover, the
-   groom and bride pages, and the gallery verse.
+/* Milton One Bold — the cover names, as on the engagement. Self-hosted (not
+   on Google Fonts). The vendor ships it as its own family at weight class
+   400, so it is remapped to CSS 700: asking for 700 gets the real bold
+   outlines, never a synthetic smear. */
+@font-face{
+  font-family:"Milton One";
+  src:url("../fonts/MiltonOneBold.woff2") format("woff2"),
+      url("../fonts/MiltonOneBold.otf")   format("opentype");
+  font-weight:700;
+  font-style:normal;
+  font-display:swap;
+}
+/* Pinyon Script — the groom and bride names and the gallery verse.
    Self-hosted as on the engagement: a device that failed to fetch it from
    Google fell back to whatever "cursive" means locally (Snell Roundhand on
    iOS). */
@@ -57,6 +68,7 @@
   --ui:"JV Ampersand","Poppins",system-ui,sans-serif;
   --display:"JV Ampersand","Playfair Display",Georgia,serif;
   --serif-light:"JV Ampersand","Cormorant Garamond","Cormorant",Georgia,serif;
+  --milton:"JV Ampersand","Milton One","Pinyon Script",cursive;
   --script:"JV Ampersand","Pinyon Script",cursive;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
@@ -262,24 +274,25 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .names-stagger{ display:flex; flex-direction:column; align-items:center; }
 /* the slight diagonal, via transforms so the flex centring stays true.
-   Near the groom/bride pages' size, so the names read as one hand. */
+   A script face needs a bigger px for the same optical size, and room for
+   the swashes — hence the large clamp. */
 .names-stagger .name-lg{
   position:relative; z-index:1; margin:0;
-  font-family:var(--script); font-weight:400;
-  font-size:clamp(46px,14.2vw,86px); line-height:1;
+  font-family:var(--milton); font-weight:700;
+  font-size:clamp(51px,16.8vw,102px); line-height:1;
 }
-.names-stagger .name-lg:first-of-type{ transform:translateX(-14px); }
-/* tucked up so Valerie's capital sits in the curve of Johan's line */
-.names-stagger .name-lg:last-of-type{ transform:translateX(14px); margin-top:-.1em; }
+.names-stagger .name-lg:first-of-type{ transform:translateX(-13px); }
+/* Milton's em box is far taller than its ink; this closes the gap */
+.names-stagger .name-lg:last-of-type{ transform:translateX(13px); margin-top:-.21em; }
 /* Ghost ampersand behind the seam; the negative margins give it no height.
    The site's one "&" (Bodoni Moda, see the top of this file),
    as on the first page. */
 .amp-lg{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:calc(clamp(46px,14.2vw,86px) * 1.4);
+  font-size:calc(clamp(51px,16.8vw,102px) * 1.18);
   color:rgba(255,255,255,.4); margin:-.62em 0 -.38em; line-height:1; pointer-events:none;
 }
-.cover-top .datestrip{ margin-top:6.6px; }   /* the script's line box already leaves room under Valerie */
+.cover-top .datestrip{ margin-top:6.6px; }   /* Valerie's ink stops short of its line box */
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
    letters run small for their size, so both are set larger than the
    Playfair they replace. */
