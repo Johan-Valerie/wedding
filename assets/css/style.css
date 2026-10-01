@@ -251,10 +251,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .names-stagger .name-lg:first-of-type{ transform:translateX(-14px); }
 /* tucked up so Valerie's capital sits in the curve of Johan's line */
 .names-stagger .name-lg:last-of-type{ transform:translateX(14px); margin-top:-.1em; }
-/* ghost ampersand behind the seam; the negative margins give it no height */
+/* Ghost ampersand behind the seam; the negative margins give it no height.
+   Cormorant Garamond's italic one, here and on the first page: Pinyon's own
+   "&" is a small Et-form that reads as a broken stroke at ghost strength. */
 .amp-lg{
-  font-family:var(--script); font-weight:400;
-  font-size:calc(clamp(46px,14.2vw,86px) * 1.15);
+  font-family:var(--serif-light); font-style:italic; font-weight:400;
+  font-size:calc(clamp(46px,14.2vw,86px) * 1.75);
   color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
 }
 .cover-top .datestrip{ margin-top:6.6px; }   /* the script's line box already leaves room under Valerie */
@@ -413,9 +415,9 @@ h3.serif{ font-size:22px; line-height:1.2; }
   font-size:clamp(40px,11.4vw,65px); line-height:.98; margin:0;
 }
 .amp-centred{
-  font-family:var(--script); font-weight:400;
-  font-size:clamp(51px,14vw,76px);
-  color:rgba(255,255,255,.4); margin:-.42em 0 -.34em; line-height:.8;
+  font-family:var(--serif-light); font-style:italic; font-weight:400;
+  font-size:clamp(72px,20vw,108px);
+  color:rgba(255,255,255,.4); margin:-.44em 0 -.36em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -440,7 +442,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred .name-lg{ font-size:68px; }
-  .amp-centred{ font-size:69px; }
+  .amp-centred{ font-size:115px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
