@@ -47,6 +47,8 @@
   --milton:"Milton One","Pinyon Script",cursive;
   --script:"Pinyon Script",cursive;
   --serif-light:"Cormorant",Georgia,serif;
+  /* the cover's greeting; plain Cormorant stands in on an older cached page */
+  --garamond:"Cormorant Garamond","Cormorant",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -266,12 +268,16 @@ h3.serif{ font-size:22px; line-height:1.2; }
   color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
 }
 .cover-top .datestrip{ margin-top:6.6px; }   /* Valerie's ink stops short of its line box */
+/* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
+   letters run small for their size, so both are set larger than the
+   Playfair they replace. */
 .cover-bottom .dear{
-  font-family:var(--display); font-weight:400; font-size:13.5px;
+  font-family:var(--garamond); font-style:italic; font-weight:400; font-size:16px;
   margin:0; color:rgba(255,255,255,.9);
 }
 .cover-bottom .guest-name{
-  font-family:var(--display); font-weight:600; font-size:19px; margin:2px 0 0;
+  font-family:var(--garamond); font-weight:500; font-size:25px; line-height:1.25; margin:2px 0 0;
+  text-wrap:balance;   /* a long two-person name breaks evenly, not "... & Mrs." */
   border-bottom:1px solid rgba(255,255,255,.45);
   display:inline-block; padding:0 22px 8px;
 }
