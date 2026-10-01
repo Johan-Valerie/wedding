@@ -1,27 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════
    Johan & Valerie — placeholder invitation
    Art style study: monochrome editorial, hairlines, no shadows,
-   frosted glass. Type is the engagement invitation's: Poppins,
-   Playfair Display, Cormorant, Milton One and Pinyon Script
+   frosted glass. Four typefaces: Poppins for running text,
+   Playfair Display for labels and headings, Cormorant Garamond
+   for the soft italic lines, Pinyon Script for the couple's names
    (the intro, cover, first page and groom/bride pages are the
    engagement invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
 
-/* Milton One Bold — the cover names, as on the engagement. Self-hosted (not
-   on Google Fonts). The vendor ships it as its own family at weight class
-   400, so it is remapped to CSS 700: asking for 700 gets the real bold
-   outlines, never a synthetic smear. */
-@font-face{
-  font-family:"Milton One";
-  src:url("../fonts/MiltonOneBold.woff2") format("woff2"),
-      url("../fonts/MiltonOneBold.otf")   format("opentype");
-  font-weight:700;
-  font-style:normal;
-  font-display:swap;
-}
-/* Pinyon Script — the groom and bride names, self-hosted as on the
-   engagement: a device that failed to fetch it from Google fell back to
-   whatever "cursive" means locally (Snell Roundhand on iOS). */
+/* Pinyon Script — the one script: the couple's names on the cover, the
+   groom and bride pages, the ghost ampersands and the gallery verse.
+   Self-hosted as on the engagement: a device that failed to fetch it from
+   Google fell back to whatever "cursive" means locally (Snell Roundhand on
+   iOS). */
 @font-face{
   font-family:"Pinyon Script";
   src:url("../fonts/PinyonScript.woff2") format("woff2");
@@ -41,14 +32,12 @@
   --col-w:430px;
   --vh:100vh;
 
-  /* the engagement's faces: UI text, labels + headings, soft lines */
+  /* the four faces: UI text, labels + headings, soft lines, names. Plain
+     Cormorant stands in for Cormorant Garamond on an older cached page. */
   --ui:"Poppins",system-ui,sans-serif;
   --display:"Playfair Display",Georgia,serif;
-  --milton:"Milton One","Pinyon Script",cursive;
+  --serif-light:"Cormorant Garamond","Cormorant",Georgia,serif;
   --script:"Pinyon Script",cursive;
-  --serif-light:"Cormorant",Georgia,serif;
-  /* the cover's greeting; plain Cormorant stands in on an older cached page */
-  --garamond:"Cormorant Garamond","Cormorant",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -100,6 +89,8 @@ html.shell .child{ height:100%; }
 body::-webkit-scrollbar{ display:none; }
 body{ scrollbar-width:none; }
 img{ max-width:100%; display:block; }
+/* form controls take the page's type, not the browser's own (Arial) */
+button, input, select, textarea{ font-family:inherit; }
 
 /* ── type voices ─────────────────────────────────────────────── */
 .serif, .names{ font-family:var(--display); font-weight:500; }
@@ -118,7 +109,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .light, .light *{ color:var(--white); }
 .light .muted{ color:rgba(255,255,255,.62); }
 .center{ text-align:center; }
-/* The cover's apology voice (Cormorant italic, light, softened) for the
+/* The cover's apology voice (Cormorant Garamond italic, light, softened) for the
    small asides: an apology, a hint, a reassurance. The RSVP status lines
    stay in the plain face, since they also carry errors that must not be
    missed. */
@@ -168,7 +159,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   animation:2s fadeInOut .3s ease-in-out forwards;
 }
 /* "Dear," and "You are invited to" borrow the cover's apology type:
-   Cormorant italic, small and quiet. The guest name sits between them in
+   Cormorant Garamond italic, small and quiet. The guest name sits between them in
    the display face, in the casing typed in the Sheet. */
 .intro-greeting .lead{
   display:block;
@@ -251,32 +242,31 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .names-stagger{ display:flex; flex-direction:column; align-items:center; }
 /* the slight diagonal, via transforms so the flex centring stays true.
-   A script face needs a bigger px for the same optical size, and room for
-   the swashes — hence the large clamp. */
+   Near the groom/bride pages' size, so the names read as one hand. */
 .names-stagger .name-lg{
   position:relative; z-index:1; margin:0;
-  font-family:var(--milton); font-weight:700;
-  font-size:clamp(51px,16.8vw,102px); line-height:1;
+  font-family:var(--script); font-weight:400;
+  font-size:clamp(46px,14.2vw,86px); line-height:1;
 }
-.names-stagger .name-lg:first-of-type{ transform:translateX(-13px); }
-/* Milton's em box is far taller than its ink; this closes the gap */
-.names-stagger .name-lg:last-of-type{ transform:translateX(13px); margin-top:-.21em; }
+.names-stagger .name-lg:first-of-type{ transform:translateX(-14px); }
+/* tucked up so Valerie's capital sits in the curve of Johan's line */
+.names-stagger .name-lg:last-of-type{ transform:translateX(14px); margin-top:-.1em; }
 /* ghost ampersand behind the seam; the negative margins give it no height */
 .amp-lg{
-  font-family:var(--milton); font-weight:700;
-  font-size:calc(clamp(51px,16.8vw,102px) * 1.15);
+  font-family:var(--script); font-weight:400;
+  font-size:calc(clamp(46px,14.2vw,86px) * 1.15);
   color:rgba(255,255,255,.4); margin:-.6em 0 -.4em; line-height:1; pointer-events:none;
 }
-.cover-top .datestrip{ margin-top:6.6px; }   /* Valerie's ink stops short of its line box */
+.cover-top .datestrip{ margin-top:6.6px; }   /* the script's line box already leaves room under Valerie */
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
    letters run small for their size, so both are set larger than the
    Playfair they replace. */
 .cover-bottom .dear{
-  font-family:var(--garamond); font-style:italic; font-weight:400; font-size:16px;
+  font-family:var(--serif-light); font-style:italic; font-weight:400; font-size:16px;
   margin:0; color:rgba(255,255,255,.9);
 }
 .cover-bottom .guest-name{
-  font-family:var(--garamond); font-weight:500; font-size:25px; line-height:1.25; margin:2px 0 0;
+  font-family:var(--serif-light); font-weight:500; font-size:25px; line-height:1.25; margin:2px 0 0;
   text-wrap:balance;   /* a long two-person name breaks evenly, not "... & Mrs." */
   border-bottom:1px solid rgba(255,255,255,.45);
   display:inline-block; padding:0 22px 8px;
@@ -423,7 +413,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   font-size:clamp(40px,11.4vw,65px); line-height:.98; margin:0;
 }
 .amp-centred{
-  font-family:var(--milton); font-weight:700;
+  font-family:var(--script); font-weight:400;
   font-size:clamp(51px,14vw,76px);
   color:rgba(255,255,255,.4); margin:-.42em 0 -.34em; line-height:.8;
 }
