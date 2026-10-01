@@ -20,21 +20,22 @@
   font-style:normal;
   font-display:swap;
 }
-/* Every "&" on the page is Playfair Display Italic's: one 1KB file holding
-   that single glyph (Google's text=& subset, SIL Open Font License), first
-   in each of the stacks below. unicode-range limits it to U+0026, so every
-   other character, and the line metrics, still come from the face after
-   it. Declared for both styles and every weight, so the browser never
-   slants or emboldens a glyph that is already italic. */
+/* Every "&" on the page is Bodoni Moda's: an upright serif ampersand in
+   the classic shape (the italic ones read as "Et", not "&"). One 1KB file
+   holding that single glyph (Google's text=& subset, SIL Open Font
+   License), first in each of the stacks below. unicode-range limits it to
+   U+0026, so every other character, and the line metrics, still come from
+   the face after it. Declared for both styles and every weight, so the
+   "&" stays upright and unthickened inside italic or bold text too. */
 @font-face{
   font-family:"JV Ampersand";
-  src:url("../fonts/Ampersand.woff2") format("woff2");
+  src:url("../fonts/Ampersand-Bodoni.woff2") format("woff2");
   unicode-range:U+0026;
   font-weight:100 900; font-style:normal; font-display:swap;
 }
 @font-face{
   font-family:"JV Ampersand";
-  src:url("../fonts/Ampersand.woff2") format("woff2");
+  src:url("../fonts/Ampersand-Bodoni.woff2") format("woff2");
   unicode-range:U+0026;
   font-weight:100 900; font-style:italic; font-display:swap;
 }
@@ -271,11 +272,11 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* tucked up so Valerie's capital sits in the curve of Johan's line */
 .names-stagger .name-lg:last-of-type{ transform:translateX(14px); margin-top:-.1em; }
 /* Ghost ampersand behind the seam; the negative margins give it no height.
-   The site's one "&" (Playfair Display Italic, see the top of this file),
+   The site's one "&" (Bodoni Moda, see the top of this file),
    as on the first page. */
 .amp-lg{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:calc(clamp(46px,14.2vw,86px) * 1.6);
+  font-size:calc(clamp(46px,14.2vw,86px) * 1.4);
   color:rgba(255,255,255,.4); margin:-.62em 0 -.38em; line-height:1; pointer-events:none;
 }
 .cover-top .datestrip{ margin-top:6.6px; }   /* the script's line box already leaves room under Valerie */
@@ -435,8 +436,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .amp-centred{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:clamp(66px,18vw,98px);
-  color:rgba(255,255,255,.4); margin:-.46em 0 -.34em; line-height:.8;
+  font-size:clamp(58px,16vw,88px);
+  color:rgba(255,255,255,.4); margin:-.45em 0 -.35em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -461,7 +462,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred .name-lg{ font-size:68px; }
-  .amp-centred{ font-size:105px; }
+  .amp-centred{ font-size:95px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
