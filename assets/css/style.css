@@ -489,7 +489,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* 18% of the screen up from the bottom: just under the hem of Johan's
    jacket on the phone crop, already into the dark part of the fade */
 #dear .content{ padding:34px 26px calc(var(--vh) * .18); max-width:330px; }
-#dear h2{ font-size:30px; margin-top:2px; }
+/* the guest's name in Playfair Display Medium (over the slot's italic) */
+#dear h2{ font-family:var(--display); font-style:normal; font-weight:500; font-size:30px; margin-top:2px; }
 #dear .micro{ font-size:10px; }
 #dear .body{ font-size:13px; }
 #dear .note{ font-size:11.5px; margin-top:12px; }
