@@ -761,41 +761,50 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .arrival-row input[type=date]{ flex:1 1 58%; min-width:0; }
 .arrival-row select{ flex:1 1 42%; min-width:0; }
 .optional{ text-transform:none; letter-spacing:.4px; color:var(--muted); }
-.optional.req{ color:var(--ink-2); font-weight:500; }
 .notes-card{
   border:1px solid var(--hairline); border-radius:2px; border-left:2px solid var(--cream);
   padding:14px 16px; margin-top:18px; text-align:left;
 }
 .notes-card .micro{ margin-bottom:8px; color:var(--muted); }
-.notes-card ul{ list-style:none; }
-.notes-card li{ font-size:12.5px; font-weight:300; line-height:1.9; color:var(--ink-2); }
-.notes-card li strong{ font-weight:500; color:var(--ink); }
+.questions-link{ display:block; color:var(--ink-2); text-decoration:none; }
+.questions-link .micro{ display:block; }
+.questions-link span:last-child{ font-size:12.5px; line-height:1.6; text-decoration:underline; text-underline-offset:3px; }
+.custom-contact{ margin:10px 0 4px; text-align:left; }
+.custom-contact .note{ font-size:12.5px; line-height:1.55; }
+.custom-contact .btn{ margin-top:9px; min-width:150px; text-align:center; }
 #details-done .done-line{ font-size:20px; line-height:1.45; margin:8px 0 4px; }
 #details-done .note{ margin-top:12px; }
+#details-contact{ margin-top:16px; }
 #details-edit-response{ width:100%; max-width:240px; margin-top:18px; }
 #details-summary{ color:var(--ink-2); }
 
-/* information step (dress code + adults-only note, before guest details) */
+/* information step (dress code + adults-only note, before accommodation) */
 #info .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
 /* lift each step's button + note clear of the fixed music button */
 #info .content, #details .content{ padding-bottom:80px; }
 #info h2{ margin-bottom:6px; }
-.info-card{
-  border:1px solid var(--hairline); border-radius:2px; border-left:2px solid var(--cream);
-  padding:16px 16px 18px; margin-top:16px; text-align:left;
+.info-section{ margin-top:24px; text-align:left; }
+.info-section + .info-section{ margin-top:28px; }
+.info-section .micro{ margin-bottom:8px; }
+.info-section .body{ font-size:13.5px; line-height:1.7; }
+.dress-palette{
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
+  list-style:none; margin:16px 0 18px; text-align:center;
 }
-.info-card .micro{ color:var(--muted); margin-bottom:8px; }
-.info-card .body{ font-size:13.5px; line-height:1.7; color:var(--ink-2); }
-.info-card .body strong{ color:var(--ink); }
-.dress-figure{ margin:12px 0 0; }
-.dress-figure img{ display:block; width:100%; max-width:300px; margin:0 auto; height:auto; }
-.dress-caption{ text-align:center; margin-top:8px; }   /* set as a .note */
+.dress-palette li{ font-family:var(--ui); font-size:10px; line-height:1.35; color:rgba(255,255,255,.8); }
+.dress-swatch{
+  display:block; width:44px; height:44px; border-radius:50%; margin:0 auto 7px;
+  border:1px solid rgba(255,255,255,.42);
+}
+.dress-swatch.pastel-yellow{ background:#f4e8ad; }
+.dress-swatch.pastel-pink{ background:#efc9d4; }
+.dress-swatch.pastel-green{ background:#c9ddc8; }
+.dress-swatch.nude{ background:#d9baa7; }
 #info .btn.solid{ margin-top:20px; }
 
-/* nights cost note (dynamic, in guest details) */
+/* hosted nights note (dynamic, in accommodation details) */
 .nights-note{ font-size:12px; line-height:1.55; margin-top:8px; color:var(--ink-2); }
-.nights-note.ok{ color:#5f6b52; }        /* fully hosted — soft olive */
-.nights-note.pay strong{ color:var(--ink); font-weight:600; }
+.nights-note.ok{ color:#5f6b52; }
 
 /* RSVP, information and guest details — windows onto the video, as the
    wishes page is: a darker veil than the photo pages, for the small form
@@ -804,8 +813,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .child.rsvp-page{ background:transparent; color:var(--white); color-scheme:dark; }
 .rsvp-page .section-scrim{ background:rgba(10,10,10,.62); }
 .rsvp-page .muted, .rsvp-page .field-label, .rsvp-page .optional,
-.rsvp-page .info-card .micro, .rsvp-page .notes-card .micro{ color:rgba(255,255,255,.62); }
-.rsvp-page .optional.req{ color:var(--white); }
+.rsvp-page .info-section .micro, .rsvp-page .notes-card .micro{ color:rgba(255,255,255,.62); }
 .rsvp-page .note{ color:rgba(255,255,255,.6); }
 .rsvp-page .hairline{ background:var(--hairline-light); }
 .rsvp-page #rsvp-form input[type=text], .rsvp-page #rsvp-form textarea,
@@ -833,16 +841,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .rsvp-page .btn.solid:hover{ background:transparent; color:var(--white); }
 .rsvp-page .btn.ghost{ color:var(--white); border-color:rgba(255,255,255,.5); }
 .rsvp-page .btn.ghost:hover{ background:rgba(255,255,255,.14); color:var(--white); }
-.rsvp-page .info-card, .rsvp-page .notes-card{
+.rsvp-page .notes-card{
   border-color:rgba(255,255,255,.22); border-left-color:rgba(229,224,216,.7);
   background:rgba(18,18,18,.34);
 }
-.rsvp-page .info-card .body, .rsvp-page .notes-card li,
+.rsvp-page .info-section .body, .rsvp-page .questions-link,
 .rsvp-page .nights-note, .rsvp-page #details-summary{ color:rgba(255,255,255,.85); }
-.rsvp-page .info-card .body strong, .rsvp-page .notes-card li strong,
-.rsvp-page .nights-note.pay strong{ color:var(--white); }
 .rsvp-page .nights-note.ok{ color:#c5d0b2; }   /* the olive, lifted for a dark page */
-.rsvp-page .dress-figure img{ border-radius:2px; }   /* a light print on the dark card */
 
 /* wishes — sits over the video backdrop, so everything reads light */
 #wishes h2{ margin-bottom:20px; color:var(--white); }
@@ -991,7 +996,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #details-form input[type=date], #details-form select{ padding:8px 12px; }
   .notes-card{ padding:10px 12px; margin-top:10px; }
   .notes-card .micro{ margin-bottom:4px; }
-  .notes-card li{ font-size:11.5px; line-height:1.65; }
+  .questions-link span:last-child{ font-size:11.5px; line-height:1.65; }
   #details-form .btn.solid{ padding:9px 16px; margin-top:12px; }
 }
 

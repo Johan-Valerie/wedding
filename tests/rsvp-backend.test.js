@@ -53,6 +53,7 @@ vm.runInContext(code, context);
 sheets.RSVP = new Sheet(Array.from(context.HEADERS));
 sheets['Guest List'] = new Sheet([...Array.from(context.GLHEADERS), 'Table']);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, true);
+assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).customArrangements, true);
 const dietHeader = sheets['Guest List'].rows[0][context.GLCOL.DIET - 1];
 sheets['Guest List'].rows[0][context.GLCOL.DIET - 1] = 'Table';
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, false);
@@ -105,6 +106,15 @@ context.handleRsvp_({
 });
 assert.equal(sheets.RSVP.rows[1][context.COL.DIETS - 1], 'Vegetarian\nNone',
   'an older page keeps diets with people after reordering');
+
+assert.equal(context.handleDetails_({
+  key: 'A & B', accommodation: 'provided', nights: 3
+}).error, 'nights_required', 'the standard stay is limited to two nights');
+assert.equal(context.handleDetails_({
+  key: 'A & B', accommodation: 'custom', nights: ''
+}).ok, true);
+assert.equal(context.getStatus_('A & B').accommodation, 'custom');
+assert.equal(sheets.RSVP.rows[1][context.COL.NIGHTS - 1], '');
 
 const oldList = new Sheet(['No.', 'Guest name', 'Invitation no.', 'Invitation name', 'Confirmed (WIB)', 'Table', 'Diet']);
 oldList.appendRow([1, 'A', 1, 'A & B', 'yesterday', 'Table 1', 'Halal']);

@@ -28,7 +28,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261002-rsvp">
+<link rel="stylesheet" href="assets/css/style.css?v=20261003-stay">
 </head>
 <body>
 
@@ -347,18 +347,21 @@
       <p class="eyebrow">BEFORE THE CELEBRATION</p>
       <h2 class="serif">For Our Guest</h2>
 
-      <div class="info-card">
+      <div class="info-section">
         <p class="micro">DRESS CODE</p>
-        <p class="body">Classy dress &mdash; black &amp; soft colours.</p>
-        <figure class="dress-figure">
-          <img src="assets/img/dress-code.png" alt="Dress code inspiration: a black suit, soft-colour gowns, and a smart neutral look" loading="lazy">
-          <figcaption class="dress-caption note">A little inspiration for the day</figcaption>
-        </figure>
+        <p class="body">We invite you to wear pastel yellow, pastel pink, pastel green, or nude.</p>
+        <ul class="dress-palette" aria-label="Suggested dress colours">
+          <li><span class="dress-swatch pastel-yellow" aria-hidden="true"></span><span>Pastel yellow</span></li>
+          <li><span class="dress-swatch pastel-pink" aria-hidden="true"></span><span>Pastel pink</span></li>
+          <li><span class="dress-swatch pastel-green" aria-hidden="true"></span><span>Pastel green</span></li>
+          <li><span class="dress-swatch nude" aria-hidden="true"></span><span>Nude</span></li>
+        </ul>
+        <p class="body">For gentlemen, a black or khaki suit is welcome. We kindly ask you to choose outfits without beading or glitter.</p>
       </div>
 
-      <div class="info-card">
+      <div class="info-section">
         <p class="micro">AN ADULTS-ONLY CELEBRATION</p>
-        <p class="body">With all our love, we&rsquo;ve chosen to make our wedding an adults-only celebration. As much as we adore your little ones, our venue isn&rsquo;t able to accommodate children and isn&rsquo;t a kid-friendly space &mdash; so we warmly ask that no little ones join us on the day. We hope this early note gives you plenty of time to arrange care, and we can&rsquo;t wait to celebrate the evening with you.</p>
+        <p class="body">With all our love, we&rsquo;ve chosen to make our wedding an adults-only celebration, as our venue isn&rsquo;t able to accommodate children. As much as we adore your little ones, we warmly ask that no little ones join us on the day. We hope this early note gives you plenty of time to arrange care, and we can&rsquo;t wait to celebrate the evening with you.</p>
       </div>
 
       <button type="button" class="btn solid" id="info-continue">Continue to Accommodation Details</button>
@@ -377,8 +380,12 @@
           <label class="field-label">Accommodation</label>
           <div class="radio-col">
             <label class="radio"><input type="radio" name="accommodation" value="provided"><span><strong>Asawin Grand Convention Hotel <span class="stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></strong><em>Our treat &mdash; <a href="https://maps.app.goo.gl/W8K9ERwkXiMMZL7E8" target="_blank" rel="noopener">view on Maps</a></em></span></label>
-            <label class="radio"><input type="radio" name="accommodation" value="upgrade"><span><strong>The Ritz-Carlton, Bangkok <span class="stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></strong><em>Upgrade at your own expense &mdash; THB 14,065.15 / night &middot; Deluxe Room &middot; <a href="https://maps.app.goo.gl/vqsSvkQEW1uSu8pt5" target="_blank" rel="noopener">view on Maps</a></em></span></label>
             <label class="radio"><input type="radio" name="accommodation" value="self"><span><strong>I&rsquo;ll arrange my own stay</strong><em>No accommodation needed</em></span></label>
+            <label class="radio"><input type="radio" name="accommodation" value="custom"><span><strong>Custom arrangements</strong><em>For extra nights or a Ritz-Carlton upgrade</em></span></label>
+          </div>
+          <div class="custom-contact" id="custom-contact" hidden>
+            <p class="note">Please contact us to arrange the details of your stay.</p>
+            <a class="btn ghost" href="https://wa.me/6281216668858" target="_blank" rel="noopener">Contact here</a>
           </div>
           <div id="details-nights-row" hidden>
             <label class="field-label" for="details-nights">Number of Nights</label>
@@ -386,15 +393,10 @@
               <option value="">&mdash; select &mdash;</option>
               <option value="1">1 night</option>
               <option value="2">2 nights</option>
-              <option value="3">3 nights</option>
-              <option value="4">4 nights</option>
-              <option value="5">5 nights</option>
-              <option value="6">6 nights</option>
-              <option value="7">7 nights</option>
             </select>
             <p class="nights-note" id="details-nights-note"></p>
           </div>
-          <label class="field-label" for="details-arrival">Arrival <span class="optional" id="details-arrival-req">(optional &mdash; date &amp; hour)</span></label>
+          <label class="field-label" for="details-arrival">Arrival <span class="optional">(optional &mdash; date &amp; hour)</span></label>
           <div class="arrival-row">
             <input id="details-arrival" type="date" min="2027-01-01" max="2027-01-09">
             <select id="details-arrival-hour" aria-label="Arrival hour">
@@ -426,10 +428,7 @@
             </select>
           </div>
           <div class="notes-card">
-            <p class="micro">QUESTIONS?</p>
-            <ul>
-              <li><strong>Contact us</strong> &mdash; WhatsApp +__ ____ ____ ____</li>
-            </ul>
+            <a class="questions-link" href="https://wa.me/6281216668858" target="_blank" rel="noopener"><span class="micro">QUESTIONS?</span><span>Contact us on WhatsApp at +62 812-1666-8858</span></a>
           </div>
           <button type="submit" class="btn solid">Complete RSVP</button>
           <p class="micro muted center" id="details-note">Required to complete your confirmation</p>
@@ -441,6 +440,7 @@
         <p class="serif-italic done-line">Your RSVP is complete.<br>We can&rsquo;t wait to celebrate with you.</p>
         <div class="hairline"></div>
         <p class="body" id="details-summary"></p>
+        <a class="btn ghost" id="details-contact" href="https://wa.me/6281216668858" target="_blank" rel="noopener" hidden>Contact us on WhatsApp</a>
         <p class="note">To update your response, submit the form again.</p>
         <button type="button" class="btn ghost" id="details-edit-response">EDIT RESPONSE</button>
       </div>
@@ -509,6 +509,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261002-rsvp"></script>
+<script src="assets/js/main.js?v=20261003-stay"></script>
 </body>
 </html>

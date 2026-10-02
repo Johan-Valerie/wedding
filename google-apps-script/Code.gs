@@ -118,11 +118,12 @@ var OLHEADERS  = ['Time (WIB)','Invitation no.','Name on link','Page shown',
 var ACCOM_LABELS = {
   provided: 'Arranged hotel (hosted)',
   upgrade:  'Upgrade hotel (own expense)',
-  self:     'Self-arranged'
+  self:     'Self-arranged',
+  custom:   'Custom arrangements'
 };
 
-/* Asawin nights we host per room; any beyond are paid by the guest. The site
-   prices the same rule in main.js (HOSTED_NIGHTS) — keep the two in step. */
+/* The standard Asawin choice is at most two hosted nights. Longer stays are
+   arranged directly and saved as Custom arrangements. */
 var HOSTED_NIGHTS = 2;
 
 var STATUS = {
@@ -361,6 +362,7 @@ function setupDashboard_(ss) {
                                     ',' + nightsCol + '-' + HOSTED_NIGHTS + ',0),0)))'],
     ['Upgrade hotel (own cost)',    '=COUNTIFS(' + yes + ',' + I('RSVP!H2:H') + ',"' + ACCOM_LABELS.upgrade + '")'],
     ['Self-arranged stay',          '=COUNTIFS(' + yes + ',' + I('RSVP!H2:H') + ',"' + ACCOM_LABELS.self + '")'],
+    ['Custom arrangements',         '=COUNTIFS(' + yes + ',' + I('RSVP!H2:H') + ',"' + ACCOM_LABELS.custom + '")'],
     ['Details still pending',       '=COUNTIFS(' + I('RSVP!D2:D') + ',"Yes",' + I('RSVP!K2:K') + ',"")']
   ];
   d.getRange(3, 1, rows.length, 2).setValues(rows);
@@ -716,7 +718,10 @@ function handleDetails_(p) {
   if (!accom) return { ok: false, error: 'accommodation_required' };
 
   var nights = '';
-  if (String(p.accommodation) !== 'self') {           // self-arranged stays track no nights
+  if (String(p.accommodation) === 'provided') {
+    nights = parseInt(p.nights, 10);
+    if (!(nights >= 1 && nights <= HOSTED_NIGHTS)) return { ok: false, error: 'nights_required' };
+  } else if (String(p.accommodation) === 'upgrade') { // accept older open pages
     nights = parseInt(p.nights, 10);
     if (!(nights >= 1 && nights <= 30)) return { ok: false, error: 'nights_required' };
   }
@@ -1019,7 +1024,8 @@ function doGet(e) {
   try {
     if (p.action === 'wishes') return json_(getWishes_());
     if (p.action === 'status') return json_(getStatus_(p.key));
-    if (p.action === 'features') return json_({ ok: true, dietaryChoices: dietSchemaReady_() });
+    if (p.action === 'features') return json_({ ok: true, dietaryChoices: dietSchemaReady_(),
+                                               customArrangements: dietSchemaReady_() });
     return json_({ ok: true, service: 'jv-rsvp' });
   } catch (err) {
     return json_({ ok: false, error: String(err).slice(0, 140) });
