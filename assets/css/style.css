@@ -605,17 +605,20 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .events-actions{ margin-top:30px; flex:none; }   /* the page's one pair of buttons */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
 #events .event-date{ width:100%; margin-bottom:4px; }
-#events .event-venue{ font-size:13px; font-weight:600; line-height:1.5; margin:0 0 28px; }
-#events .event-card{
-  display:grid; grid-template-columns:64px minmax(0,1fr);
-  align-items:start; gap:16px; max-width:320px; text-align:left;
+#events .event-venue{
+  font-family:var(--serif-light); font-style:italic; font-size:16px;
+  font-weight:400; line-height:1.5; margin:0 0 28px;
 }
+#events .event-card{ max-width:320px; text-align:center; }
 #events .event-time{
-  font-size:11px; line-height:1.5; letter-spacing:.4px; margin-top:3px;
+  display:block; font-size:11px; line-height:1.5; letter-spacing:.6px; margin:0 0 3px;
   font-variant-numeric:lining-nums tabular-nums; white-space:nowrap;
 }
-#events .card-title{ font-size:20px; letter-spacing:.6px; margin:0 0 4px; }
-#events .address{ margin:0; }
+#events .card-title{ font-size:17.5px; letter-spacing:.3px; margin:0 0 4px; }
+#events .address{
+  font-family:var(--serif-light); font-style:italic; font-weight:400;
+  font-size:14px; line-height:1.4; margin:0;
+}
 #events .event-divider{ width:100%; max-width:320px; height:1px; margin:19px 0; }
 #events .events-actions{ margin-top:28px; }
 /* the welcome dinner's page: the events page's veil over the video, and the
@@ -996,7 +999,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #dear .content{ padding-bottom:calc(var(--vh) * .13); }
   #dear .body{ font-size:12px; line-height:1.65; }
   #events .events-inner{ padding-top:64px; padding-bottom:72px; }
-  #events .card-title{ font-size:18px; }
+  #events .card-title{ font-size:16px; }
   #events .event-date{ gap:10px; }
   #events .event-date .card-side{ font-size:10.5px; gap:5px; }
   #events .event-date .card-date .mon{ font-size:10px; }
