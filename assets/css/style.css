@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    Johan & Valerie — placeholder invitation
    Art style study: monochrome editorial, hairlines, no shadows,
-   frosted glass. Typefaces: Poppins for running text, Playfair
-   Display for labels and headings, Cormorant Garamond for the soft
-   italic lines, Pinyon Script for every name in script, in a light
+   frosted glass. All serif: Playfair Display for running text,
+   labels and headings, Cormorant Garamond for the soft italic
+   lines, Pinyon Script for every name in script, in a light
    cut for the couple's names on the cover and the first page (the
    intro, cover, first page and groom/bride pages are the engagement
    invitation's own design)
@@ -64,10 +64,13 @@
   --col-w:430px;
   --vh:100vh;
 
-  /* the four faces: UI text, labels + headings, soft lines, names, each
-     led by the shared ampersand. Plain Cormorant stands in for Cormorant
-     Garamond on an older cached page. */
-  --ui:"JV Ampersand","Poppins",system-ui,sans-serif;
+  /* the faces: UI text, labels + headings, soft lines, names, each led
+     by the shared ampersand. UI text is Playfair Display too, so the whole
+     invitation is serif; its x-height is close to the Poppins it replaced,
+     so the sizes still hold, and a light 300 resolves to its Regular.
+     Plain Cormorant stands in for Cormorant Garamond on an older cached
+     page. */
+  --ui:"JV Ampersand","Playfair Display",Georgia,serif;
   --display:"JV Ampersand","Playfair Display",Georgia,serif;
   --serif-light:"JV Ampersand","Cormorant Garamond","Cormorant",Georgia,serif;
   --script:"JV Ampersand","Pinyon Script",cursive;
