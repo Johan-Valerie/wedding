@@ -76,7 +76,7 @@
     <div class="cover-bottom">
       <p class="dear">Dear,</p>
       <p class="guest-name" id="guest-name">Our Beloved Guest</p>
-      <p class="apology">We apologize if there is any misspelling of name or title.</p>
+      <p class="apology">Please excuse any errors in names or titles.</p>
       <button id="open-invitation" type="button">
         <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M2 5.5h20v13H2z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 6.2 12 13l9.5-6.8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
         <span>OPEN INVITATION</span>
@@ -160,11 +160,10 @@
   <section class="child photo-section" id="dear" style="background-image:url('assets/img/2.jpg')">
     <div class="section-scrim"></div>
     <div class="content light" data-aos="fade">
-      <p class="micro">DEAR,</p>
+      <p class="micro">Dear,</p>
       <h2 class="serif-italic guest-name-slot">Our Beloved Guest</h2>
       <div class="hairline light"></div>
       <p class="body">With joy in our hearts, we warmly invite you<br>to be part of the beginning of our forever.</p>
-      <p class="note">We apologize if there is any misspelling of name or title.</p>
     </div>
   </section>
 
@@ -323,6 +322,7 @@
             <label class="field-label" for="rsvp-name">Full Name</label>
             <input id="rsvp-name" type="text" placeholder="Your name" maxlength="80">
           </div>
+          <p class="note center rsvp-deadline">Please respond by 9 December 2026</p>
           <label class="field-label">Attendance</label>
           <div class="radio-row">
             <label class="radio"><input type="radio" name="attendance" value="yes" checked><span>Joyfully Attending</span></label>
@@ -337,18 +337,19 @@
             </div>
           </div>
           <label class="field-label" for="rsvp-wishes">Wishes</label>
-          <textarea id="rsvp-wishes" rows="3" maxlength="500" placeholder="Share your blessings for us&hellip;"></textarea>
-          <button type="button" class="btn solid" id="rsvp-next">Next &mdash; Guest Names</button>
+          <textarea id="rsvp-wishes" rows="3" maxlength="500" placeholder="Share your wishes and blessings&hellip;"></textarea>
+          <button type="button" class="btn solid" id="rsvp-next">CONTINUE</button>
           <button type="submit" class="btn solid" id="rsvp-send" hidden>Send Response</button>
         </div>
         <!-- step 2: one name per guest, for the guest list and the hotel -->
         <div id="rsvp-step2" hidden>
+          <p class="note center rsvp-instruction">Please enter the full name of each attending guest.</p>
           <div id="rsvp-guest-names"></div>
-          <button type="submit" class="btn solid" id="rsvp-confirm">Confirm Attendance</button>
+          <button type="submit" class="btn solid" id="rsvp-confirm">Complete RSVP</button>
           <button type="button" class="btn ghost" id="rsvp-back">Back</button>
         </div>
         <input type="text" name="website" id="rsvp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-        <p class="micro muted center" id="rsvp-note">Kindly confirm before the celebration</p>
+        <p class="micro muted center" id="rsvp-note" role="status" aria-live="polite" hidden></p>
       </form>
     </div>
   </section>
@@ -454,7 +455,7 @@
         <p class="serif-italic done-line">Your RSVP is complete.<br>We can&rsquo;t wait to celebrate with you.</p>
         <div class="hairline"></div>
         <p class="body" id="details-summary"></p>
-        <p class="note">Need to change something? Just fill the form again with your link.</p>
+        <p class="note">To update your response, submit the form again.</p>
       </div>
     </div>
   </section>
@@ -482,8 +483,8 @@
     <div class="marquee reanimate fade delay200ms" data-dir="left">
       <div class="marquee-track" id="row-a"></div>
     </div>
-    <h2 class="gallery-title reanimate fade delay400ms">Moments in Time</h2>
-    <p class="gallery-hint hint-tap reanimate fade delay500ms">Tap image for slideshow view</p>
+    <h2 class="gallery-title reanimate fade delay400ms">MOMENTS IN TIME</h2>
+    <p class="gallery-hint hint-tap reanimate fade delay500ms">Tap a photo to view the slideshow.</p>
     <div class="marquee reanimate fade delay600ms" data-dir="right">
       <div class="marquee-track" id="row-b"></div>
     </div>
@@ -514,10 +515,10 @@
   <div id="lightbox-counter"></div>
 </div>
 
-<!-- The engagement invitation's song: AAC in an m4a, the baseline audio format
-     on iOS Safari, so one source plays everywhere. -->
+<!-- Ruelle — I Get To Love You. The supplied .mp3 file contains AAC/MP4 audio,
+     so the published copy uses an .m4a extension and the matching MIME type. -->
 <audio id="song" loop preload="auto">
-  <source src="assets/audio/soundtrack.m4a" type="audio/mp4">
+  <source src="assets/audio/ruelle-i-get-to-love-you.m4a" type="audio/mp4">
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>

@@ -73,8 +73,7 @@
   var iconPause = $('#icon-pause');
   var opened = false;
 
-  /* 0.46, as on the engagement: this track is mastered loud (-9.5 LUFS), so
-     full volume would play it noticeably louder than intended. */
+  /* Keep the soundtrack below full volume when the invitation opens. */
   if (song) song.volume = 0.46;
   function playAudio() { if (song) song.play().catch(function () {}); }
   function pauseAudio() { if (song) song.pause(); }
@@ -178,6 +177,24 @@
       if (!document.body.contains(el)) return;             // intro already gone
       $$('.gname', el).forEach(function (n) { autoFit(n, el); });
     };
+    fit();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    window.addEventListener('resize', fit);
+  })();
+
+  (function fitDearGuestName() {
+    var name = $('#dear .guest-name-slot');
+    if (!name) return;
+    var textRange = document.createRange();
+    textRange.selectNodeContents(name);
+    function fit() {
+      name.style.fontSize = '';
+      var size = parseFloat(getComputedStyle(name).fontSize);
+      while (textRange.getBoundingClientRect().width > name.clientWidth && size > 8) {
+        size -= 0.5;
+        name.style.fontSize = size + 'px';
+      }
+    }
     fit();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
     window.addEventListener('resize', fit);
@@ -518,13 +535,20 @@
     if (wrap) wrap.hidden = true;
     if (done) done.hidden = false;
     var labels = {
-      provided: 'Asawin Grand Convention Hotel — our treat',
       upgrade: 'The Ritz-Carlton, Bangkok — own expense',
       self: 'Self-arranged stay'
     };
     var parts = [];
     var n = parseInt(nights, 10);
-    if (labels[accomCode]) parts.push(labels[accomCode] + (n ? ' — ' + n + ' night' + (n > 1 ? 's' : '') : ''));
+    if (accomCode === 'provided') {
+      parts.push('Asawin Grand Convention Hotel');
+      parts.push(n === 1 ? 'Your one-night stay is with our compliments.'
+        : n === 2 ? 'Your two-night stay is with our compliments.'
+        : n > 2 ? 'Your first two nights are with our compliments.'
+        : 'Your stay is with our compliments.');
+    } else if (labels[accomCode]) {
+      parts.push(labels[accomCode] + (n ? ' — ' + n + ' night' + (n > 1 ? 's' : '') : ''));
+    }
     var cost = nightsCost(accomCode, nights);
     if (cost) parts.push((accomCode === 'provided' ? 'extra ' : '') + fmtTHB(cost) +
                          ' to ' + (accomCode === 'provided' ? 'Asawin' : 'the Ritz-Carlton'));
@@ -604,7 +628,6 @@
   var countField = $('#rsvp-count-field'), nameBox = $('#rsvp-guest-names');
   var rsvpTitle = $('#rsvp-title');
   var TITLE_STEP1 = rsvpTitle ? rsvpTitle.innerHTML : '';
-  var NOTE_STEP1 = 'Kindly confirm before the celebration';
   var savedNames = [];      // names from an earlier answer, restored on a return visit
   var touched = false;      // a guest already filling in keeps their form over a late restore
   var answered = false;     // an answer went out; editing it re-arms the buttons
@@ -630,7 +653,7 @@
   }
   function rsvpNote(msg) {
     var note = $('#rsvp-note');
-    if (note) note.textContent = msg;
+    if (note) { note.textContent = msg; note.hidden = !msg; }
   }
   function syncAttendance() {
     var yes = attendingYes();
@@ -641,7 +664,7 @@
   function showStep(n) {
     if (step1) step1.hidden = n !== 1;
     if (step2) step2.hidden = n !== 2;
-    if (rsvpTitle) rsvpTitle.innerHTML = n === 1 ? TITLE_STEP1 : 'Who Is<br>Joining?';
+    if (rsvpTitle) rsvpTitle.innerHTML = n === 1 ? TITLE_STEP1 : 'Guest Details';
     var content = form && form.parentNode;
     if (content) {
       content.scrollTop = 0;
@@ -679,7 +702,7 @@
     }
     buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
     showStep(2);
-    rsvpNote('Please enter each guest’s full name');
+    rsvpNote('');
   }
 
   if (form) {
@@ -692,7 +715,7 @@
     syncAttendance();
   }
   if (nextBtn) nextBtn.addEventListener('click', goNext);
-  if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(NOTE_STEP1); });
+  if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(''); });
 
   if (form) form.addEventListener('submit', function (e) {
     e.preventDefault();
