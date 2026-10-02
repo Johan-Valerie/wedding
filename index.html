@@ -28,7 +28,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/style.css?v=20261002-events">
 </head>
 <body>
 
@@ -163,7 +163,8 @@
       <p class="micro">Dear,</p>
       <h2 class="serif-italic guest-name-slot">Our Beloved Guest</h2>
       <div class="hairline light"></div>
-      <p class="body">With joy in our hearts, we warmly invite you<br>to be part of the beginning of our forever.</p>
+      <p class="body">With hearts full of joy, we look forward to sharing our wedding day with the people who hold a special place in our lives.</p>
+      <p class="body">We warmly invite you to join us in Bangkok, Thailand, to celebrate the beginning of our forever. Having you beside us would make this day all the more meaningful.</p>
     </div>
   </section>
 
@@ -220,45 +221,40 @@
     </div>
   </section>
 
-  <!-- 8 · EVENTS — the engagement's event page over the wedding's photo: a
-       title, the date between two ruled sides, venue and room, and a hairline
-       joining one event to the next. One pair of buttons serves the page:
-       every event is at La Chapelle Bangkok, and the calendar file holds all
-       of the guest's events. Holy Matrimony (and the line after it) shows
-       only with &hm=1, see main.js. -->
+  <!-- 8 · EVENTS — one shared date and venue, then a timed schedule for the
+       three wedding-day events. One pair of buttons serves the page; the
+       calendar file holds all of the guest's events. Holy Matrimony (and
+       the line after it) shows only with &hm=1, see main.js. -->
   <section class="child photo-section events" id="events" style="background-image:url('assets/img/events.jpg')">
     <div class="section-scrim"></div>
     <div class="content events-inner">
+      <div class="card-grid event-date reanimate fade delay100ms">
+        <div class="card-side"><i class="rule"></i><span>SATURDAY</span><i class="rule"></i></div>
+        <time class="card-date" datetime="2027-01-09"><span class="mon">JAN</span><span class="day">9</span><span class="yr">2027</span></time>
+        <div class="card-side"><i class="rule"></i><span>BANGKOK</span><i class="rule"></i></div>
+      </div>
+      <p class="event-venue reanimate fade delay100ms">La Chapelle Bangkok</p>
       <article class="event-card reanimate fade delay200ms" id="event-holmat">
-        <h3 class="card-title">HOLY MATRIMONY</h3>
-        <div class="card-grid">
-          <div class="card-side"><i class="rule"></i><span>SATURDAY</span><i class="rule"></i></div>
-          <div class="card-date"><span class="mon">JAN</span><span class="day">9</span><span class="yr">2027</span></div>
-          <div class="card-side"><i class="rule"></i><span>3:00 PM</span><i class="rule"></i></div>
+        <time class="event-time" datetime="2027-01-09T15:00:00+07:00">3:00 PM</time>
+        <div class="event-summary">
+          <h3 class="card-title">HOLY MATRIMONY</h3>
+          <p class="address">Jardin de Juliet</p>
         </div>
-        <p class="venue">La Chapelle Bangkok</p>
-        <p class="address">Jardin de Juliet</p>
       </article>
       <div class="event-divider reanimate fade delay300ms" id="holmat-divider"></div>
       <article class="event-card reanimate fade delay400ms" id="event-cocktail">
-        <h3 class="card-title">COCKTAIL PARTY</h3>
-        <div class="card-grid">
-          <div class="card-side"><i class="rule"></i><span>SATURDAY</span><i class="rule"></i></div>
-          <div class="card-date"><span class="mon">JAN</span><span class="day">9</span><span class="yr">2027</span></div>
-          <div class="card-side"><i class="rule"></i><span>5:00 PM</span><i class="rule"></i></div>
+        <time class="event-time" datetime="2027-01-09T17:00:00+07:00">5:00 PM</time>
+        <div class="event-summary">
+          <h3 class="card-title">COCKTAIL PARTY</h3>
         </div>
-        <p class="venue">La Chapelle Bangkok</p>
       </article>
       <div class="event-divider reanimate fade delay500ms"></div>
       <article class="event-card reanimate fade delay600ms" id="event-reception">
-        <h3 class="card-title">THE RECEPTION</h3>
-        <div class="card-grid">
-          <div class="card-side"><i class="rule"></i><span>SATURDAY</span><i class="rule"></i></div>
-          <div class="card-date"><span class="mon">JAN</span><span class="day">9</span><span class="yr">2027</span></div>
-          <div class="card-side"><i class="rule"></i><span>6:00 PM</span><i class="rule"></i></div>
+        <time class="event-time" datetime="2027-01-09T18:00:00+07:00">6:00 PM</time>
+        <div class="event-summary">
+          <h3 class="card-title">THE RECEPTION</h3>
+          <p class="address">Saint Hall</p>
         </div>
-        <p class="venue">La Chapelle Bangkok</p>
-        <p class="address">Saint Hall</p>
       </article>
       <div class="pill-row events-actions reanimate fade delay700ms">
         <a class="pill pill-ghost" data-calendar="all" href="#">ADD TO CALENDAR</a>
@@ -359,7 +355,7 @@
     <div class="section-scrim"></div>
     <div class="content" data-aos="fade">
       <p class="eyebrow">BEFORE THE CELEBRATION</p>
-      <h2 class="serif">Good to Know</h2>
+      <h2 class="serif">For Our Guest</h2>
 
       <div class="info-card">
         <p class="micro">DRESS CODE</p>

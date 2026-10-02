@@ -513,11 +513,16 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 /* 18% of the screen up from the bottom: just under the hem of Johan's
    jacket on the phone crop, already into the dark part of the fade */
-#dear .content{ padding:34px 26px calc(var(--vh) * .18); max-width:330px; }
+#dear .content{
+  padding:34px 26px calc(var(--vh) * .18); max-width:380px;
+  max-height:100%; overflow-y:auto; scrollbar-width:none;
+}
+#dear .content::-webkit-scrollbar{ display:none; }
 /* Keep the personalized name on one line; main.js reduces it further for long names. */
 #dear h2{ font-family:var(--display); font-style:normal; font-weight:500; font-size:24px; margin-top:2px; white-space:nowrap; }
 #dear .micro{ font-size:10px; text-transform:none; }
 #dear .body{ font-size:13px; font-family:"JV Ampersand","JV Serif Light","Playfair Display",Georgia,serif; }
+#dear .body + .body{ margin-top:12px; }
 
 /* verse */
 /* each of the three lines stays whole down to a 360px phone */
@@ -567,9 +572,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .film-caption .eyebrow{ margin-bottom:4px; color:var(--white); }
 .film-caption .micro{ font-size:10px; color:rgba(255,255,255,.75); }
 
-/* events — the engagement's event page: white type straight on the darkened
-   photo, a title, the date between two ruled sides, venue and room, pill
-   buttons, and a hairline joining one event to the next */
+/* wedding-day events: one shared date and venue above a timed schedule */
 #events{ color:var(--white); }
 #events .section-scrim{ background:linear-gradient(rgba(0,0,0,.62) 0%, rgba(0,0,0,.72) 100%); }
 .events-inner{
@@ -601,6 +604,20 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .event-card > :last-child{ margin-bottom:0; }
 .events-actions{ margin-top:30px; flex:none; }   /* the page's one pair of buttons */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
+#events .event-date{ width:100%; margin-bottom:4px; }
+#events .event-venue{ font-size:13px; font-weight:600; line-height:1.5; margin:0 0 28px; }
+#events .event-card{
+  display:grid; grid-template-columns:64px minmax(0,1fr);
+  align-items:start; gap:16px; max-width:320px; text-align:left;
+}
+#events .event-time{
+  font-size:11px; line-height:1.5; letter-spacing:.4px; margin-top:3px;
+  font-variant-numeric:lining-nums tabular-nums; white-space:nowrap;
+}
+#events .card-title{ font-size:20px; letter-spacing:.6px; margin:0 0 4px; }
+#events .address{ margin:0; }
+#events .event-divider{ width:100%; max-width:320px; height:1px; margin:19px 0; }
+#events .events-actions{ margin-top:28px; }
 /* the welcome dinner's page: the events page's veil over the video, and the
    Asawin line kept to two even lines */
 #welcome .section-scrim{ background:linear-gradient(rgba(0,0,0,.62) 0%, rgba(0,0,0,.72) 100%); }
@@ -620,32 +637,16 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .pill-ghost{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.34); }
 .pill:hover{ background:rgba(255,255,255,.42); transform:translateY(-1px); }
-/* all three events (the &hm=1 link): the same card, set tighter */
-#events.three .card-title{ font-size:21px; margin-bottom:10px; }
-#events.three .card-grid{ margin-bottom:10px; }
-#events.three .card-date .day{ font-size:28px; }
-#events.three .event-divider{ height:22px; margin:8px 0; }
+/* Holy Matrimony links show a third row; keep air around the full schedule. */
+#events.three .event-venue{ margin-bottom:22px; }
+#events.three .event-divider{ margin:15px 0; }
 #events.three .events-actions{ margin-top:24px; }
-/* Shorter screens — which is most phones once Safari's bars take their
-   share: shorter joining lines. */
-@media (max-height:780px){
-  #events .event-divider{ height:32px; }
-}
-/* Below ~730px the three-event page no longer fits whole: a compact card
-   (venue and room on one line, a smaller date block), with room kept
-   clear under the monogram and above the music button. */
+/* Clear the monogram and sound button on short screens. */
 @media (max-height:730px){
   #events.three .events-inner{ padding-top:64px; padding-bottom:72px; }
-  #events.three .card-title{ font-size:18.5px; margin-bottom:6px; }
-  #events.three .card-grid{ gap:10px; margin-bottom:6px; }
-  #events.three .card-side{ font-size:10.5px; gap:5px; }
-  #events.three .card-date .mon{ font-size:10px; }
-  #events.three .card-date .day{ font-size:23px; margin:1px 0; }
-  #events.three .card-date .yr{ font-size:9.5px; }
-  #events.three .venue, #events.three .address{ display:inline; font-size:12px; }
-  #events.three .address::before{ content:"\00b7"; margin:0 7px; }
+  #events.three .event-venue{ margin-bottom:16px; }
+  #events.three .event-divider{ margin:10px 0; }
   #events.three .events-actions{ margin-top:18px; }
-  #events.three .event-divider{ height:10px; margin:5px 0; }
 }
 .btn{
   display:inline-block; font-size:10px; letter-spacing:1.6px; text-transform:uppercase;
@@ -989,19 +990,17 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events .content{ padding:20px 26px; }
 }
 
-/* very short viewports (SE-class phones): last squeeze for 3 cards */
-/* SE-class screens in Safari (~550px tall): every event list gets the
-   compact card, clear of the monogram and the music button */
+/* SE-class screens in Safari (~550px tall): keep the schedule clear of
+   the monogram and music button while allowing the content to scroll. */
 @media (max-height:600px){
   #events .events-inner{ padding-top:64px; padding-bottom:72px; }
-  #events .card-title{ font-size:18.5px; margin-bottom:6px; }
-  #events .card-grid{ gap:10px; margin-bottom:6px; }
-  #events .card-side{ font-size:10.5px; gap:5px; }
-  #events .card-date .mon{ font-size:10px; }
-  #events .card-date .day{ font-size:23px; margin:1px 0; }
-  #events .card-date .yr{ font-size:9.5px; }
-  #events .venue, #events .address{ display:inline; font-size:12px; }
-  #events .address::before{ content:"\00b7"; margin:0 7px; }
+  #events .card-title{ font-size:18px; }
+  #events .event-date{ gap:10px; }
+  #events .event-date .card-side{ font-size:10.5px; gap:5px; }
+  #events .event-date .card-date .mon{ font-size:10px; }
+  #events .event-date .card-date .day{ font-size:23px; margin:1px 0; }
+  #events .event-date .card-date .yr{ font-size:9.5px; }
+  #events .event-venue{ margin-bottom:14px; }
   #events .events-actions{ margin-top:18px; }
-  #events .event-divider{ height:10px; margin:5px 0; }
+  #events .event-divider{ margin:9px 0; }
 }
