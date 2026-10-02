@@ -33,6 +33,19 @@
   font-style:normal;
   font-display:swap;
 }
+/* JV Serif Light — the Dear page's invitation sentence. Playfair Display
+   has no weight under Regular, so its "light" (300) text drew at 400 and
+   read as bold. This is a lighter cut made from Playfair Display Regular
+   (SIL Open Font License; renamed, as its Reserved Font Name requires):
+   the hairlines are untouched and the thicker strokes are shaved, the
+   main strokes by about 30%. */
+@font-face{
+  font-family:"JV Serif Light";
+  src:url("../fonts/JVSerif-Light.woff2") format("woff2");
+  font-weight:300;
+  font-style:normal;
+  font-display:swap;
+}
 /* Every "&" on the page is Bodoni Moda's: an upright serif ampersand in
    the classic shape (the italic ones read as "Et", not "&"). One 1KB file
    holding that single glyph (Google's text=& subset, SIL Open Font
@@ -297,8 +310,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
    as on the first page. */
 .amp-lg{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:calc(clamp(51px,16.8vw,102px) * 1.18);
-  color:rgba(255,255,255,.4); margin:-.69em 0 -.31em; line-height:1; pointer-events:none;
+  font-size:calc(clamp(51px,16.8vw,102px) * .85);
+  color:rgba(255,255,255,.4); margin:-.77em 0 -.23em; line-height:1; pointer-events:none;
 }
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
    letters run small for their size, so both are set larger than the
@@ -461,8 +474,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .names-centred .name-lg:last-of-type{ margin-top:-.13em; }
 .amp-centred{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:clamp(58px,16vw,88px);
-  color:rgba(255,255,255,.4); margin:-.61em 0 -.19em; line-height:.8;
+  font-size:clamp(35px,11.5vw,63px);
+  color:rgba(255,255,255,.4); margin:-.69em 0 -.11em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -487,7 +500,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred{ font-size:98px; }
-  .amp-centred{ font-size:95px; }
+  .amp-centred{ font-size:68px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
@@ -504,7 +517,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* the guest's name in Playfair Display Medium (over the slot's italic) */
 #dear h2{ font-family:var(--display); font-style:normal; font-weight:500; font-size:30px; margin-top:2px; }
 #dear .micro{ font-size:10px; }
-#dear .body{ font-size:13px; }
+#dear .body{ font-size:13px; font-family:"JV Ampersand","JV Serif Light","Playfair Display",Georgia,serif; }
 #dear .note{ font-size:11.5px; margin-top:12px; }
 
 /* verse */
