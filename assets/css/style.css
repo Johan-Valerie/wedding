@@ -676,19 +676,28 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* rsvp */
 #rsvp h2{ margin-bottom:22px; }
 #rsvp-form{ text-align:left; }
-#rsvp .rsvp-deadline{ margin:12px 0 2px; }
+#rsvp .rsvp-deadline{
+  font-family:var(--ui); font-size:15px; font-style:normal; font-weight:700;
+  line-height:1.5; color:var(--white); margin:12px 0 18px;
+}
+#rsvp .rsvp-deadline a{
+  color:inherit; font:inherit; text-decoration:underline; text-underline-offset:3px;
+  text-decoration-thickness:1px;
+}
 #rsvp .rsvp-instruction{ margin:0 0 12px; }
 .field-label{
   display:block; font-size:10px; letter-spacing:1.8px; text-transform:uppercase;
   color:var(--muted); margin:16px 0 6px;
 }
-#rsvp-form input[type=text], #rsvp-form textarea{
+#rsvp-form input[type=text], #rsvp-form textarea, #rsvp-form select.rsvp-diet{
   width:100%; font-family:var(--ui); font-size:14px; font-weight:300;
   color:var(--ink); background:transparent;
   border:1px solid var(--hairline); border-radius:2px; padding:12px 14px;
   outline:none; resize:none;
 }
-#rsvp-form input[type=text]:focus, #rsvp-form textarea:focus{ border-color:var(--ink-2); }
+#rsvp-form input[type=text]:focus, #rsvp-form textarea:focus,
+#rsvp-form select.rsvp-diet:focus{ border-color:var(--ink-2); }
+#rsvp-form select.rsvp-diet option{ color:var(--ink); background:var(--white); }
 .radio-row{ display:flex; gap:8px; }
 .radio{ flex:1; }
 .radio input{ position:absolute; opacity:0; }
@@ -714,7 +723,11 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* a large party's name list can outgrow a short screen — scroll inside the page */
 #rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
 #rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed music button */
-#rsvp-guest-names .field-label:first-child{ margin-top:4px; }
+#rsvp-guest-names .guest-entry:first-child > .field-label:first-child{ margin-top:4px; }
+#rsvp-guest-names .guest-entry + .guest-entry{
+  border-top:1px solid var(--hairline-light); margin-top:16px; padding-top:12px;
+}
+#rsvp-guest-names .diet-label{ margin-top:9px; }
 #rsvp-back{ width:100%; margin-top:10px; font-family:var(--ui); }
 
 /* honeypot — invisible to humans, tempting to bots */
@@ -796,10 +809,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .rsvp-page .note{ color:rgba(255,255,255,.6); }
 .rsvp-page .hairline{ background:var(--hairline-light); }
 .rsvp-page #rsvp-form input[type=text], .rsvp-page #rsvp-form textarea,
+.rsvp-page #rsvp-form select.rsvp-diet,
 .rsvp-page #details-form input[type=date], .rsvp-page #details-form select{
   color:var(--white); border-color:rgba(255,255,255,.3);
 }
 .rsvp-page #rsvp-form input[type=text]:focus, .rsvp-page #rsvp-form textarea:focus,
+.rsvp-page #rsvp-form select.rsvp-diet:focus,
 .rsvp-page #details-form input[type=date]:focus, .rsvp-page #details-form select:focus{
   border-color:rgba(255,255,255,.75);
 }

@@ -28,7 +28,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261002-events3">
+<link rel="stylesheet" href="assets/css/style.css?v=20261002-rsvp">
 </head>
 <body>
 
@@ -308,12 +308,7 @@
       <form id="rsvp-form" autocomplete="off">
         <!-- step 1: attendance, party size, wishes -->
         <div id="rsvp-step1">
-          <!-- only for a visitor without a personal link: ?to= IS the guest's identity -->
-          <div id="rsvp-name-field">
-            <label class="field-label" for="rsvp-name">Full Name</label>
-            <input id="rsvp-name" type="text" placeholder="Your name" maxlength="80">
-          </div>
-          <p class="note center rsvp-deadline">Please respond by 9 December 2026</p>
+          <p class="center rsvp-deadline">Please respond by <a href="assets/rsvp-reminder.ics" aria-label="Add a reminder for the RSVP deadline on 9 December 2026">9 December 2026</a></p>
           <label class="field-label">Attendance</label>
           <div class="radio-row">
             <label class="radio"><input type="radio" name="attendance" value="yes" checked><span>Joyfully Attending</span></label>
@@ -336,7 +331,7 @@
         <div id="rsvp-step2" hidden>
           <p class="note center rsvp-instruction">Please enter the full name of each attending guest.</p>
           <div id="rsvp-guest-names"></div>
-          <button type="submit" class="btn solid" id="rsvp-confirm">Complete RSVP</button>
+          <button type="submit" class="btn solid" id="rsvp-confirm">Continue</button>
           <button type="button" class="btn ghost" id="rsvp-back">Back</button>
         </div>
         <input type="text" name="website" id="rsvp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -345,7 +340,7 @@
     </div>
   </section>
 
-  <!-- 10a · INFORMATION (unlocks after an "attending" confirmation) -->
+  <!-- 10a · INFORMATION (unlocks after attending guest details) -->
   <section class="child rsvp-page" id="info" hidden>
     <div class="section-scrim"></div>
     <div class="content" data-aos="fade">
@@ -366,18 +361,18 @@
         <p class="body">With all our love, we&rsquo;ve chosen to make our wedding an adults-only celebration. As much as we adore your little ones, our venue isn&rsquo;t able to accommodate children and isn&rsquo;t a kid-friendly space &mdash; so we warmly ask that no little ones join us on the day. We hope this early note gives you plenty of time to arrange care, and we can&rsquo;t wait to celebrate the evening with you.</p>
       </div>
 
-      <button type="button" class="btn solid" id="info-continue">Continue to Guest Details</button>
+      <button type="button" class="btn solid" id="info-continue">Continue to Accommodation Details</button>
       <p class="note center">One more short step to complete your RSVP</p>
     </div>
   </section>
 
-  <!-- 10b · GUEST DETAILS (unlocks after the information step) -->
+  <!-- 10b · ACCOMMODATION DETAILS (unlocks after the information step) -->
   <section class="child rsvp-page" id="details" hidden>
     <div class="section-scrim"></div>
     <div class="content" data-aos="fade">
       <div id="details-form-wrap">
         <p class="eyebrow">ONE LAST STEP</p>
-        <h2 class="serif">Guest Details</h2>
+        <h2 class="serif">Accommodation Details</h2>
         <form id="details-form" autocomplete="off">
           <label class="field-label">Accommodation</label>
           <div class="radio-col">
@@ -514,6 +509,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261002-events3"></script>
+<script src="assets/js/main.js?v=20261002-rsvp"></script>
 </body>
 </html>

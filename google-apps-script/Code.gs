@@ -13,7 +13,7 @@
  *       assets/js/main.js as API_URL.)
  *   Do 2 and 3 back to back. Saving alone does NOT update the live web app.
  *
- * THE FOUR TABS
+ * THE FIVE TABS
  *   Invitation — one row per invitation (what used to be "Guests"). Column A
  *                is the invitation number: the row's position, by formula.
  *                Type a Guest name (and a Companion for a couple) and the
@@ -41,8 +41,11 @@
  *                clear this cell, or the first person's answer counts for them.
  *   Guest List — one row per confirmed person, written by the site. Each
  *                invitation's rows are replaced whenever it re-submits.
+ *                Diet is selected by each guest; custom Table/Room columns
+ *                stay with the person when the invitation is edited.
  *   RSVP       — the raw submissions, one row per invitation, plus the
- *                Approved checkbox that gates a wish onto the site.
+ *                Approved checkbox that gates a wish onto the site. Guest
+ *                diets are saved next to guest names for repeat edits.
  *   Opens log  — one row per page load from a personal link: when, which
  *                invitation, the exact link, what that link shows, and whether
  *                it still matches the Sheet. "No" = that guest holds a link
@@ -83,10 +86,10 @@ var FILL_ROWS = 1000;
 
 /* RSVP columns (1-based) — append-only, see above */
 var COL = { TIME:1, KEY:2, NAME:3, ATTENDING:4, PAX:5, WISHES:6, APPROVED:7,
-            ACCOM:8, NIGHTS:9, ARRIVAL:10, DETAILS_AT:11, INVNO:12, GUESTS:13 };
+            ACCOM:8, NIGHTS:9, ARRIVAL:10, DETAILS_AT:11, INVNO:12, GUESTS:13, DIETS:14 };
 var HEADERS = ['Timestamp','Guest link (key)','Invitation name','Attending','Pax',
                'Wishes','Approved','Accommodation','Nights','Arrival','Details completed',
-               'Invitation no.','Guest names'];
+               'Invitation no.','Guest names','Guest diets'];
 
 /* Invitation columns (1-based) */
 var ICOL = { NO:1, NAME:2, COMPANION:3, SEATS:4, HOLMAT:5, LINK:6, STATUS:7, PAX:8,
@@ -101,8 +104,8 @@ var IHEADERS = ['Invitation no.','Guest name','Companion name','Max seats','Holy
 var LINKNAMES_HEADER = 'Link names';
 
 /* Guest List columns (1-based) */
-var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5 };
-var GLHEADERS = ['No.','Guest name','Invitation no.','Invitation name','Confirmed (WIB)'];
+var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5, DIET:6 };
+var GLHEADERS = ['No.','Guest name','Invitation no.','Invitation name','Confirmed (WIB)','Diet'];
 
 /* Opens log — one row per page load, with the exact link used. Seats and Holy
    Matrimony live only in the link, so the link is the only record of what the
@@ -173,6 +176,7 @@ function setupRsvp_(ss) {
   s.setColumnWidth(COL.KEY, 200);
   s.setColumnWidth(COL.WISHES, 320);
   s.setColumnWidth(COL.GUESTS, 220);
+  s.setColumnWidth(COL.DIETS, 150);
   // Arrival stays plain text ("2027-01-08 14:00"), or Sheets turns it into a date.
   // Format BEFORE the values go back, since clear() dropped the old format.
   s.getRange(2, COL.ARRIVAL, s.getMaxRows() - 1, 1).setNumberFormat('@');
@@ -276,6 +280,7 @@ function setupGuestList_(ss) {
   s.setColumnWidth(GLCOL.INVNO, 110);
   s.setColumnWidth(GLCOL.INVNAME, 230);
   s.setColumnWidth(GLCOL.WHEN, 160);
+  s.setColumnWidth(GLCOL.DIET, 120);
 
   numberGuestList_(rows);
   if (rows.length) s.getRange(2, 1, rows.length, head.length).setValues(rows);
@@ -637,6 +642,14 @@ function fixRows() {
 
 /* ═══════════════ WEB APP: receive from the website ═══════════════ */
 
+/** setup() must add these headers before the deployed code writes their columns. */
+function dietSchemaReady_() {
+  try {
+    return sheet_(RSVP_SHEET).getRange(1, COL.DIETS).getValue() === HEADERS[COL.DIETS - 1] &&
+           sheet_(GLIST_SHEET).getRange(1, GLCOL.DIET).getValue() === GLHEADERS[GLCOL.DIET - 1];
+  } catch (err) { return false; }
+}
+
 function doPost(e) {
   /* The site posts form fields; a JSON body is accepted too. Both reach here
      as the same object, so any copy of the page — old or new — is heard. */
@@ -669,6 +682,7 @@ function doPost(e) {
 function handleRsvp_(p) {
   var key = normKey_(p.key || p.name);
   if (!key) return { ok: false, error: 'key_required' };
+  if (!dietSchemaReady_()) return { ok: false, error: 'setup_required' };
 
   var a = answerFrom_(p, key, false);
   /* One read of the Invitation tab gives every name each invitation answers
@@ -685,7 +699,10 @@ function handleRsvp_(p) {
     rememberName_(inv, invRow, p.key || p.name);
   }
   // An old copy of the page sends no names; keep what an earlier answer gave.
-  if (a.guests.length || !a.yes) syncGuestList_(a.invNo, key, a.guests, inv);
+  if (a.guests.length || !a.yes) {
+    var alignedDiets = syncGuestList_(a.invNo, key, a.guests, a.diets, inv);
+    if (a.yes && a.diets === null) sheet.getRange(w.row, COL.DIETS).setValue(alignedDiets.join('\n'));
+  }
   CacheService.getScriptCache().remove('wishes');
   return { ok: true, stage2: a.yes };
 }
@@ -693,6 +710,7 @@ function handleRsvp_(p) {
 function handleDetails_(p) {
   var key = normKey_(p.key || p.name);
   if (!key) return { ok: false, error: 'key_required' };
+  if (!dietSchemaReady_()) return { ok: false, error: 'setup_required' };
 
   var accom = ACCOM_LABELS[String(p.accommodation)] || '';
   if (!accom) return { ok: false, error: 'accommodation_required' };
@@ -721,7 +739,10 @@ function handleDetails_(p) {
     var a = answerFrom_(p, key, true);
     a.invNo = invRow ? invRow - 1 : '';
     row = writeAnswer_(sheet, row, a).row;
-    if (a.guests.length) syncGuestList_(a.invNo, key, a.guests, inv);
+    if (a.guests.length) {
+      var alignedDiets = syncGuestList_(a.invNo, key, a.guests, a.diets, inv);
+      if (a.diets === null) sheet.getRange(row, COL.DIETS).setValue(alignedDiets.join('\n'));
+    }
     CacheService.getScriptCache().remove('wishes');
   }
 
@@ -737,11 +758,13 @@ function handleDetails_(p) {
 function answerFrom_(p, key, forceYes) {
   var yes = forceYes || /^(yes|attend|true)$/i.test(String(p.attending));
   var guests = yes ? guestsFrom_(p.guests) : [];
+  var diets = yes ? dietsFrom_(p.diets, guests.length) : [];
   return {
     key: key,
     name: clean_(p.name, 120) || key,
     yes: yes,
     guests: guests,
+    diets: diets,
     pax: yes ? Math.max(1, Math.min(20, parseInt(p.pax, 10) || guests.length || 1)) : 0,
     wishes: clean_(p.wishes, 500)
   };
@@ -759,13 +782,32 @@ function guestsFrom_(g) {
           .filter(String).slice(0, 20);
 }
 
+/** One dietary choice per guest. null means an older page sent no diet field. */
+function dietsFrom_(raw, count) {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw === 'string') {
+    var s = raw.trim();
+    if (s.charAt(0) === '[') { try { raw = JSON.parse(s); } catch (err) { raw = []; } }
+    else raw = s ? s.split('\n') : [];
+  }
+  if (!Array.isArray(raw)) raw = [];
+  var choices = { none:'None', halal:'Halal', vegetarian:'Vegetarian' };
+  var out = [];
+  for (var i = 0; i < count; i++) {
+    var code = String(raw[i] || 'none').trim().toLowerCase();
+    out.push(choices[code] || 'None');
+  }
+  return out;
+}
+
 /**
  * Writes an answer into the invitation's RSVP row — one read and one write
  * for an existing row, an append for a new one. Details (hotel, nights,
  * arrival) are carried through untouched. An edited wish goes back to
  * unapproved, so new text never reaches the wall unreviewed; an empty wishes
  * box keeps the earlier wish. Guest names are stored one per line, so a name
- * with a comma in it ("John Doe, Jr.") comes back whole. The key becomes the
+ * with a comma in it ("John Doe, Jr.") comes back whole. Diets use matching
+ * lines and stay unchanged when an older page sends no diet field. The key becomes the
  * name just used, for a row first answered under an older name.
  */
 function writeAnswer_(sheet, row, a) {
@@ -784,10 +826,11 @@ function writeAnswer_(sheet, row, a) {
     v[COL.APPROVED - 1] = v[COL.APPROVED - 1] === true;
     v[COL.INVNO - 1] = a.invNo;
     if (a.guests.length || !a.yes) v[COL.GUESTS - 1] = a.guests.join('\n');
+    if (a.diets !== null) v[COL.DIETS - 1] = a.diets.join('\n');
     sheet.getRange(row, 1, 1, HEADERS.length).setValues([v]);
   } else {
     v = [new Date(), a.key, a.name, a.yes ? 'Yes' : 'No', a.pax, a.wishes, false,
-         '', '', '', '', a.invNo, a.guests.join('\n')];
+         '', '', '', '', a.invNo, a.guests.join('\n'), a.diets === null ? '' : a.diets.join('\n')];
     row = appendRsvpRow_(sheet, v);
   }
   return { row: row, values: v };
@@ -806,12 +849,12 @@ function appendRsvpRow_(sheet, v) {
  * submitted — matched by invitation NAME, never by number: this name, or any
  * other name of the same Invitation row (Link names), so rows written under
  * an older name are replaced too. The block stays where it was, and every
- * column beyond the standard five (a Table, Room or Diet column you add)
+ * column beyond the standard six (a Table or Room column you add)
  * travels with its person: same name first, else the same position, so a
  * corrected spelling keeps its table. Someone who switches from yes to no
  * drops off the list.
  */
-function syncGuestList_(invNo, invKey, names, inv) {
+function syncGuestList_(invNo, invKey, names, diets, inv) {
   var s = sheet_(GLIST_SHEET);
   var last = s.getLastRow();
   var width = Math.max(s.getLastColumn(), GLHEADERS.length);
@@ -836,7 +879,8 @@ function syncGuestList_(invNo, invKey, names, inv) {
     }
     if (from < 0 && i < mine.length && !used[i]) from = i;
     if (from >= 0) used[from] = true;
-    var row = ['', n, invNo, invKey, now];
+    var diet = diets === null ? (from >= 0 ? mine[from][GLCOL.DIET - 1] : '') : diets[i];
+    var row = ['', n, invNo, invKey, now, diet || ''];
     for (j = GLHEADERS.length; j < width; j++) row.push(from >= 0 ? mine[from][j] : '');
     return row;
   });
@@ -846,6 +890,7 @@ function syncGuestList_(invNo, invKey, names, inv) {
   // One clearContent plus one setValues, not a deleteRow per moved name.
   if (rows.length) s.getRange(2, 1, rows.length, width).clearContent();
   if (out.length) s.getRange(2, 1, out.length, width).setValues(out);
+  return fresh.map(function (r) { return r[GLCOL.DIET - 1]; });
 }
 
 /** Numbers the people on the list 1, 2, 3 … (rows without a name get none). */
@@ -974,6 +1019,7 @@ function doGet(e) {
   try {
     if (p.action === 'wishes') return json_(getWishes_());
     if (p.action === 'status') return json_(getStatus_(p.key));
+    if (p.action === 'features') return json_({ ok: true, dietaryChoices: dietSchemaReady_() });
     return json_({ ok: true, service: 'jv-rsvp' });
   } catch (err) {
     return json_({ ok: false, error: String(err).slice(0, 140) });
@@ -1030,6 +1076,8 @@ function getStatus_(rawKey) {
     pax: parseInt(v[COL.PAX - 1], 10) || 0,
     guests: String(v[COL.GUESTS - 1]).split('\n')
       .map(function (n) { return n.trim(); }).filter(String),
+    diets: String(v[COL.DIETS - 1]).split('\n')
+      .map(function (d) { return d.trim().toLowerCase(); }),
     wishes: v[COL.WISHES - 1],
     accommodation: accomCode,
     nights: v[COL.NIGHTS - 1],

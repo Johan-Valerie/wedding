@@ -42,16 +42,17 @@
     $$('.guest-name-slot').concat([$('#guest-name')]).forEach(function (el) {
       if (el) el.textContent = decoded;
     });
-    // ?to= IS the guest's identity — the name field is only for visitors without a link
-    var nameField = $('#rsvp-name-field');
-    if (nameField) nameField.hidden = true;
   }
+  var invitationNames = guestKey.split(/\s+&\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
   var maxGuests = parseInt(params.get('max'), 10);
   var guestsInput = $('#rsvp-guests');
   if (guestsInput && maxGuests > 0) {
     guestsInput.max = maxGuests;
     var lbl = $('#guest-count-label');
     if (lbl) lbl.textContent = 'No of Guest (Max ' + maxGuests + ')';
+  }
+  if (guestsInput && invitationNames.length > 1) {
+    guestsInput.value = Math.min(invitationNames.length, parseInt(guestsInput.max, 10) || 2);
   }
 
   /* holy matrimony is invitation-only: card (and the line after it) shows
@@ -622,10 +623,10 @@
   }
   if (nightsSel) nightsSel.addEventListener('change', updateNightsNote);
 
-  /* stage 1: attendance → (attending) one name per guest → confirm.
+  /* stage 1: attendance → (attending) name and diet per guest → information.
      The invitation name from ?to= is the identity and signs the wish, so a
-     guest with a link never types their own name; the names asked for on the
-     second step go to the Guest List tab (and the hotel booking). */
+     guest with a link never types a separate identity; the names and diets on
+     the second step go to the Guest List tab (and the hotel booking). */
   var form = $('#rsvp-form');
   var step1 = $('#rsvp-step1'), step2 = $('#rsvp-step2');
   var nextBtn = $('#rsvp-next'), sendBtn = $('#rsvp-send');
@@ -634,6 +635,9 @@
   var rsvpTitle = $('#rsvp-title');
   var TITLE_STEP1 = rsvpTitle ? rsvpTitle.innerHTML : '';
   var savedNames = [];      // names from an earlier answer, restored on a return visit
+  var savedDiets = [];      // matching dietary choices (none, halal, vegetarian)
+  var dietaryReady = false; // show choices only after the deployed backend can save them
+  var guestFieldsEdited = false;
   var touched = false;      // a guest already filling in keeps their form over a late restore
   var answered = false;     // an answer went out; editing it re-arms the buttons
   var SEND_LABEL = sendBtn ? sendBtn.textContent : '';
@@ -650,7 +654,8 @@
   }
 
   function who() {
-    return guestKey || (($('#rsvp-name') && $('#rsvp-name').value) || '').trim();
+    var firstGuest = nameBox && $('.rsvp-guest', nameBox);
+    return guestKey || (firstGuest ? firstGuest.value.trim() : '');
   }
   function attendingYes() {
     var r = form && form.querySelector('input[name=attendance]:checked');
@@ -676,14 +681,15 @@
       content.classList.toggle('on-step2', n === 2);   // clears the fixed music button
     }
   }
-  /* Rebuilt whenever the count changes. A field already on screen keeps what
-     is in it; new positions fall back to an earlier answer, then to the
-     invitation name ("Mr. A & Mrs. B" seeds two). */
-  function buildGuestFields(n) {
-    var typed = $$('.rsvp-guest', nameBox).map(function (el) { return el.value; });
-    var seed = who().split(/\s+&\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  /* Rebuilt whenever the count changes. Fields already on screen keep their
+     values; new positions use an earlier answer or the invitation names. */
+  function buildGuestFields(n, restoreSaved) {
+    var typed = restoreSaved ? [] : $$('.rsvp-guest', nameBox).map(function (el) { return el.value; });
+    var typedDiets = restoreSaved ? [] : $$('.rsvp-diet', nameBox).map(function (el) { return el.value; });
     nameBox.innerHTML = '';
     for (var i = 0; i < n; i++) {
+      var entry = document.createElement('div');
+      entry.className = 'guest-entry';
       var label = document.createElement('label');
       label.className = 'field-label';
       label.htmlFor = 'rsvp-guest-' + i;
@@ -694,17 +700,31 @@
       input.className = 'rsvp-guest';
       input.placeholder = 'Full name';
       input.maxLength = 80;
-      input.value = typed[i] !== undefined ? typed[i] : (savedNames[i] || seed[i] || '');
-      nameBox.appendChild(label);
-      nameBox.appendChild(input);
+      input.value = typed[i] !== undefined ? typed[i] : (savedNames[i] || invitationNames[i] || '');
+      entry.appendChild(label);
+      entry.appendChild(input);
+      if (dietaryReady) {
+        var dietLabel = document.createElement('label');
+        dietLabel.className = 'field-label diet-label';
+        dietLabel.htmlFor = 'rsvp-diet-' + i;
+        dietLabel.textContent = 'Dietary preference';
+        var diet = document.createElement('select');
+        diet.id = 'rsvp-diet-' + i;
+        diet.className = 'rsvp-diet';
+        [['none', 'None'], ['halal', 'Halal'], ['vegetarian', 'Vegetarian']].forEach(function (choice) {
+          var option = document.createElement('option');
+          option.value = choice[0];
+          option.textContent = choice[1];
+          diet.appendChild(option);
+        });
+        diet.value = typedDiets[i] || savedDiets[i] || 'none';
+        entry.appendChild(dietLabel);
+        entry.appendChild(diet);
+      }
+      nameBox.appendChild(entry);
     }
   }
   function goNext() {
-    if (!who()) {
-      rsvpNote('Please fill in your name');
-      if ($('#rsvp-name')) $('#rsvp-name').focus();
-      return;
-    }
     touched = true;
     buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
     showStep(2);
@@ -719,6 +739,19 @@
     form.addEventListener('input', edited);
     form.addEventListener('change', edited);
     syncAttendance();
+  }
+  if (nameBox) {
+    nameBox.addEventListener('input', function () { guestFieldsEdited = true; });
+    nameBox.addEventListener('change', function () { guestFieldsEdited = true; });
+  }
+  if (API_URL) {
+    fetch(API_URL + '?action=features')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || d.dietaryChoices !== true) return;
+        dietaryReady = true;
+        if (step2 && !step2.hidden) buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
+      }).catch(function () {});
   }
   if (nextBtn) nextBtn.addEventListener('click', goNext);
   if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(''); });
@@ -738,13 +771,18 @@
     // Enter pressed in a step-1 field while attending means "next", not "send"
     if (yes && step2 && step2.hidden) { goNext(); return; }
 
-    var name = who();
-    if (!name) { rsvpNote('Please fill in your name'); return; }
     var names = [];
+    var diets = [];
     if (yes) {
       names = $$('.rsvp-guest', nameBox).map(function (el) { return el.value.trim(); });
+      diets = $$('.rsvp-diet', nameBox).map(function (el) { return el.value; });
       if (!names.length) { rsvpNote('Please tell us who is joining'); return; }
       if (names.some(function (n) { return !n; })) { rsvpNote('Please fill in every guest name'); return; }
+    }
+    var name = who();
+    if (!name) {
+      rsvpNote(yes ? 'Please enter Guest 1’s name' : 'Please use your personal invitation link to RSVP');
+      return;
     }
     touched = true;
     var text = ($('#rsvp-wishes').value || '').trim();
@@ -753,6 +791,7 @@
     function afterOk() {
       answered = true;
       savedNames = names;
+      if (yes) savedDiets = diets;
       if (yes) {
         reopenDetails('Required to complete your confirmation');
         if (btn) { btn.textContent = 'Confirmed ✓ — a few notes below'; btn.disabled = true; }
@@ -770,7 +809,7 @@
     if (API_URL) {
       if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
       sendApi({ action: 'rsvp', key: name, name: name, attending: yes ? 'yes' : 'no',
-                pax: yes ? names.length : 0, guests: names, wishes: text }, {
+                pax: yes ? names.length : 0, guests: names, diets: diets, wishes: text }, {
         refused: function () {
           resetButtons();
           rsvpNote('Sorry — that didn’t save. Please send it again.');
@@ -806,7 +845,7 @@
     if (note) note.textContent = msg;
   }
 
-  /* stage 2: guest details (accommodation + nights + arrival) */
+  /* final stage: accommodation + nights + arrival */
   if (detailsForm) detailsForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var chosen = detailsForm.querySelector('input[name=accommodation]:checked');
@@ -854,7 +893,8 @@
                    this one was lost the sheet still gets a complete row. */
                 attending: 'yes',
                 pax: savedNames.length || parseInt(guestsInput && guestsInput.value, 10) || 1,
-                guests: savedNames, wishes: ($('#rsvp-wishes').value || '').trim(),
+                guests: savedNames, diets: savedDiets,
+                wishes: ($('#rsvp-wishes').value || '').trim(),
                 accommodation: chosen.value, nights: nights,
                 arrival: arrival, arrivalHour: hour }, {
         refused: function () {
@@ -892,12 +932,15 @@
         if (!d || !d.found) return;
         savedNames = Array.isArray(d.guests) ? d.guests
           : String(d.guests || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+        savedDiets = Array.isArray(d.diets) ? d.diets : [];
+        if (step2 && !step2.hidden && !guestFieldsEdited) {
+          buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1, true);
+        }
         var isYes = String(d.attending).toLowerCase() === 'yes';
         /* A guest who started changing their answer before this reply landed
            keeps what they typed; the rest — unlocked pages, hotel choice — is
            restored either way. */
         if (!touched) {
-          if (d.name && $('#rsvp-name')) $('#rsvp-name').value = d.name;
           if (d.pax && guestsInput) {
             var cap = parseInt(guestsInput.max, 10) || 99;
             guestsInput.value = Math.min(d.pax, cap);
