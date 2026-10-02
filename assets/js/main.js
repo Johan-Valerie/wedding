@@ -497,6 +497,11 @@
   var infoSection = $('#info');
   var detailsSection = $('#details');
   var detailsForm = $('#details-form');
+  var detailsTouched = false;
+  if (detailsForm) {
+    detailsForm.addEventListener('input', function () { detailsTouched = true; });
+    detailsForm.addEventListener('change', function () { detailsTouched = true; });
+  }
 
   // Asawin hosts up to 2 nights; extra nights are paid to the hotel.
   var HOSTED_NIGHTS = 2, ASAWIN_EXTRA = 2200, RITZ_RATE = 14065.15;
@@ -700,6 +705,7 @@
       if ($('#rsvp-name')) $('#rsvp-name').focus();
       return;
     }
+    touched = true;
     buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
     showStep(2);
     rsvpNote('');
@@ -716,6 +722,14 @@
   }
   if (nextBtn) nextBtn.addEventListener('click', goNext);
   if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(''); });
+  var detailsEditBtn = $('#details-edit-response');
+  if (detailsEditBtn) detailsEditBtn.addEventListener('click', function () {
+    touched = true;
+    resetButtons();
+    showStep(1);
+    rsvpNote('');
+    scrollToSection($('#rsvp'));
+  });
 
   if (form) form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -732,6 +746,7 @@
       if (!names.length) { rsvpNote('Please tell us who is joining'); return; }
       if (names.some(function (n) { return !n; })) { rsvpNote('Please fill in every guest name'); return; }
     }
+    touched = true;
     var text = ($('#rsvp-wishes').value || '').trim();
     var btn = yes ? confirmBtn : sendBtn;
 
@@ -739,6 +754,7 @@
       answered = true;
       savedNames = names;
       if (yes) {
+        reopenDetails('Required to complete your confirmation');
         if (btn) { btn.textContent = 'Confirmed ✓ — a few notes below'; btn.disabled = true; }
         if (backBtn) backBtn.hidden = true;
         rsvpNote(text
@@ -778,7 +794,7 @@
     }
   });
 
-  /* A details save the sheet refused puts the form back, ready to resend. */
+  /* Reopen a completed details form after a new RSVP or a refused save. */
   var detailsBtn = detailsForm && $('button[type=submit]', detailsForm);
   var DETAILS_LABEL = detailsBtn ? detailsBtn.textContent : '';
   function reopenDetails(msg) {
@@ -894,22 +910,24 @@
         if (isYes) {
           unlockInfo(false);
           unlockDetails(false);
-          if (d.accommodation && detailsForm) {
-            var acc = detailsForm.querySelector('input[name=accommodation][value="' + d.accommodation + '"]');
-            if (acc) acc.checked = true;
-          }
-          syncNightsRow();
-          if (d.nights && nightsSel) nightsSel.value = String(parseInt(d.nights, 10) || '');
-          updateNightsNote();
-          if (d.arrival && $('#details-arrival')) {
-            var am = /^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):\d{2})?/.exec(String(d.arrival));
-            if (am) {
-              $('#details-arrival').value = am[1];
-              var hs = $('#details-arrival-hour');
-              if (hs && am[2] !== undefined) hs.value = String(parseInt(am[2], 10));
+          if (!detailsTouched) {
+            if (d.accommodation && detailsForm) {
+              var acc = detailsForm.querySelector('input[name=accommodation][value="' + d.accommodation + '"]');
+              if (acc) acc.checked = true;
+            }
+            syncNightsRow();
+            if (d.nights && nightsSel) nightsSel.value = String(parseInt(d.nights, 10) || '');
+            updateNightsNote();
+            if (d.arrival && $('#details-arrival')) {
+              var am = /^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):\d{2})?/.exec(String(d.arrival));
+              if (am) {
+                $('#details-arrival').value = am[1];
+                var hs = $('#details-arrival-hour');
+                if (hs && am[2] !== undefined) hs.value = String(parseInt(am[2], 10));
+              }
             }
           }
-          if (d.detailsDone) showDetailsDone(d.accommodation, d.arrival, d.nights);
+          if (d.detailsDone && !touched && !detailsTouched) showDetailsDone(d.accommodation, d.arrival, d.nights);
         }
       })
       .catch(function () {});
