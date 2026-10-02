@@ -12,6 +12,7 @@
   /* ── config ──────────────────────────────────────────────── */
   var WEDDING_DATE = new Date('2027-01-09T15:00:00+07:00');   // 3 PM, Bangkok (ICT)
   var EVENTS = {
+    welcome:   { title: 'Welcome Dinner — Johan & Valerie', start: '20270108T103000Z', end: '20270108T133000Z', loc: 'Asiatique The Riverfront', desc: 'Or depart from Asawin Grand Convention Hotel at 4:30 PM.' },
     ceremony:  { title: 'Holy Matrimony — Johan & Valerie', start: '20270109T080000Z', end: '20270109T093000Z', loc: 'La Chapelle Bangkok — Jardin de Juliet' },
     cocktail:  { title: 'Cocktail Party — Johan & Valerie', start: '20270109T100000Z', end: '20270109T110000Z', loc: 'La Chapelle Bangkok' },
     reception: { title: 'Wedding Reception — Johan & Valerie', start: '20270109T110000Z', end: '20270109T150000Z', loc: 'La Chapelle Bangkok — Saint Hall' }
@@ -345,7 +346,9 @@
       lines.push('BEGIN:VEVENT',
         'UID:' + Math.random().toString(36).slice(2) + '@johanvalerie', 'DTSTAMP:' + stamp,
         'SUMMARY:' + ev.title, 'DTSTART:' + ev.start, 'DTEND:' + ev.end,
-        'LOCATION:' + ev.loc, 'END:VEVENT');
+        'LOCATION:' + ev.loc);
+      if (ev.desc) lines.push('DESCRIPTION:' + ev.desc);
+      lines.push('END:VEVENT');
     });
     lines.push('END:VCALENDAR');
     return 'data:text/calendar;charset=utf8;base64,' + btoa(unescape(encodeURIComponent(lines.join('\r\n'))));

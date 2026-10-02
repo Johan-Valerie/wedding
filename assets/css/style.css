@@ -602,6 +602,10 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .event-card > :last-child{ margin-bottom:0; }
 .events-actions{ margin-top:30px; flex:none; }   /* the page's one pair of buttons */
 .event-divider{ width:1px; height:56px; background:rgba(255,255,255,.35); margin:6px 0; flex:none; }
+/* the welcome dinner's page: the events page's veil over the video, and the
+   Asawin line kept to two even lines */
+#welcome .section-scrim{ background:linear-gradient(rgba(0,0,0,.62) 0%, rgba(0,0,0,.72) 100%); }
+#welcome .address{ max-width:290px; margin-left:auto; margin-right:auto; text-wrap:balance; }
 /* The engagement's pill, sized down for a pair: one size in every layout,
    and both buttons the same width, so each card ends in a matched pair
    rather than a big and a small button. 140px holds ADD TO CALENDAR
