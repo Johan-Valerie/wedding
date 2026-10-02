@@ -925,7 +925,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (hover:hover){ .marquee img:hover{ opacity:.82; } }
 .gallery-title{
   font-family:var(--display); font-weight:500;
-  font-size:clamp(25.5px,7.65vw,32.3px); line-height:1.2; padding:0 24px;
+  font-size:clamp(21.7px,6.5vw,27.5px); line-height:1.2; padding:0 24px;
 }
 .gallery-hint{
   font-family:var(--serif-light); font-style:italic; font-size:12px;
