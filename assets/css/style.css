@@ -990,9 +990,11 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events .content{ padding:20px 26px; }
 }
 
-/* SE-class screens in Safari (~550px tall): keep the schedule clear of
-   the monogram and music button while allowing the content to scroll. */
+/* SE-class screens in Safari (~550px tall): place the longer invitation
+   below the faces and keep the schedule clear of the floating controls. */
 @media (max-height:600px){
+  #dear .content{ padding-bottom:calc(var(--vh) * .13); }
+  #dear .body{ font-size:12px; line-height:1.65; }
   #events .events-inner{ padding-top:64px; padding-bottom:72px; }
   #events .card-title{ font-size:18px; }
   #events .event-date{ gap:10px; }
