@@ -310,8 +310,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
    as on the first page. */
 .amp-lg{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:calc(clamp(51px,16.8vw,102px) * .85);
-  color:rgba(255,255,255,.4); margin:-.77em 0 -.23em; line-height:1; pointer-events:none;
+  font-size:calc(clamp(51px,16.8vw,102px) * .51);
+  color:rgba(255,255,255,.4); margin:-.954em 0 -.046em; line-height:1; pointer-events:none;
 }
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
    letters run small for their size, so both are set larger than the
@@ -474,8 +474,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .names-centred .name-lg:last-of-type{ margin-top:-.13em; }
 .amp-centred{
   font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:clamp(35px,11.5vw,63px);
-  color:rgba(255,255,255,.4); margin:-.69em 0 -.11em; line-height:.8;
+  font-size:clamp(21px,6.9vw,38px);
+  color:rgba(255,255,255,.4); margin:-.89em 0 .09em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -500,7 +500,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred{ font-size:98px; }
-  .amp-centred{ font-size:68px; }
+  .amp-centred{ font-size:41px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
