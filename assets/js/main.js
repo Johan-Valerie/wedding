@@ -504,6 +504,78 @@
     detailsForm.addEventListener('change', function () { detailsTouched = true; });
   }
 
+  /* A consistent calendar for the arrival dates, including mobile browsers
+     that do not open a native date picker when the input text is tapped. */
+  var arrivalInput = $('#details-arrival');
+  var arrivalTrigger = $('#details-arrival-trigger');
+  var arrivalText = $('#details-arrival-text');
+  var arrivalCalendar = $('#arrival-calendar');
+  var arrivalDays = $('#arrival-days');
+  function setArrivalDate(value, notify) {
+    if (!arrivalInput || !arrivalText) return;
+    var match = /^2027-01-(0[1-9])$/.exec(value || '');
+    arrivalInput.value = match ? value : '';
+    arrivalText.textContent = match ? '01/' + match[1] + '/2027' : 'mm/dd/yyyy';
+    if (arrivalDays) $$('button[data-date]', arrivalDays).forEach(function (day) {
+      var selected = day.getAttribute('data-date') === arrivalInput.value;
+      day.classList.toggle('selected', selected);
+      day.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    if (notify) arrivalInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function showArrivalCalendar(open) {
+    if (!arrivalCalendar || !arrivalTrigger) return;
+    arrivalCalendar.hidden = !open;
+    arrivalTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) arrivalCalendar.scrollIntoView({ block: 'nearest' });
+  }
+  if (arrivalDays && arrivalTrigger && arrivalCalendar) {
+    for (var blank = 0; blank < 5; blank++) {
+      arrivalDays.appendChild(document.createElement('span'));
+    }
+    for (var date = 1; date <= 31; date++) {
+      var dayButton = document.createElement('button');
+      dayButton.type = 'button';
+      dayButton.textContent = String(date);
+      dayButton.setAttribute('aria-label', 'Select ' + date + ' January 2027');
+      if (date > 9) {
+        dayButton.disabled = true;
+      } else {
+        dayButton.setAttribute('data-date', '2027-01-' + ('0' + date).slice(-2));
+        dayButton.setAttribute('aria-pressed', 'false');
+      }
+      arrivalDays.appendChild(dayButton);
+    }
+    arrivalTrigger.addEventListener('click', function () {
+      showArrivalCalendar(arrivalCalendar.hidden);
+    });
+    arrivalDays.addEventListener('click', function (event) {
+      var day = event.target.closest('button[data-date]');
+      if (!day) return;
+      setArrivalDate(day.getAttribute('data-date'), true);
+      showArrivalCalendar(false);
+      arrivalTrigger.focus();
+    });
+    var arrivalClear = $('#arrival-clear');
+    if (arrivalClear) arrivalClear.addEventListener('click', function () {
+      setArrivalDate('', true);
+      var hour = $('#details-arrival-hour');
+      if (hour) hour.value = '';
+      showArrivalCalendar(false);
+      arrivalTrigger.focus();
+    });
+    document.addEventListener('click', function (event) {
+      if (!arrivalCalendar.hidden && !arrivalCalendar.contains(event.target) &&
+          !arrivalTrigger.contains(event.target)) showArrivalCalendar(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !arrivalCalendar.hidden) {
+        showArrivalCalendar(false);
+        arrivalTrigger.focus();
+      }
+    });
+  }
+
   var HOSTED_NIGHTS = 2;
 
   function scrollToSection(el) {
@@ -539,7 +611,7 @@
     } else if (accomCode === 'self') {
       parts.push('Self-arranged stay');
     } else if (accomCode === 'custom') {
-      parts.push('Custom arrangements requested. Please contact us to arrange your stay.');
+      parts.push('Custom arrangements selected. Please contact us, and we\u2019ll be happy to help with your stay.');
     }
     if (arrival) parts.push('arriving ' + arrival);
     var sum = $('#details-summary');
@@ -923,7 +995,7 @@
             if (d.arrival && $('#details-arrival')) {
               var am = /^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):\d{2})?/.exec(String(d.arrival));
               if (am) {
-                $('#details-arrival').value = am[1];
+                setArrivalDate(am[1], false);
                 var hs = $('#details-arrival-hour');
                 if (hs && am[2] !== undefined) hs.value = String(parseInt(am[2], 10));
               }

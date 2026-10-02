@@ -750,25 +750,48 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .radio-col .radio input:checked + span{ border-color:var(--ink); background:rgba(229,224,216,.35); }
 .radio-col .stars{ color:#c4c4c4; font-size:11px; letter-spacing:2px; vertical-align:1px; white-space:nowrap; }
 .radio-col .radio span em a{ color:var(--muted); text-decoration:underline; text-underline-offset:2px; }
-#details-form input[type=date], #details-form select{
+#details-form .arrival-trigger, #details-form select{
   width:100%; font-family:var(--ui); font-size:14px; font-weight:300;
   color:var(--ink); background:transparent;
   border:1px solid var(--hairline); border-radius:2px; padding:11px 14px; outline:none;
 }
-#details-form input[type=date]:focus, #details-form select:focus{ border-color:var(--ink-2); }
+#details-form .arrival-trigger:focus, #details-form select:focus{ border-color:var(--ink-2); }
 #details-form select option{ color:var(--ink); background:var(--white); }
 .arrival-row{ display:flex; gap:8px; }
-.arrival-row input[type=date]{ flex:1 1 58%; min-width:0; }
+.arrival-row .arrival-trigger{
+  flex:1 1 58%; min-width:0; display:flex; align-items:center;
+  justify-content:space-between; gap:8px; text-align:left; cursor:pointer;
+}
+.arrival-trigger svg{ width:17px; height:17px; flex:none; }
 .arrival-row select{ flex:1 1 42%; min-width:0; }
+.arrival-calendar{
+  margin-top:8px; padding:12px 14px; border:1px solid rgba(255,255,255,.3);
+  border-radius:2px; background:rgba(12,12,12,.85); text-align:center;
+}
+.arrival-calendar-title{ font-family:var(--serif); font-size:15px; margin-bottom:10px; }
+.arrival-calendar-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+.arrival-calendar-grid.weekdays{ font-family:var(--ui); font-size:10px; color:rgba(255,255,255,.62); margin-bottom:5px; }
+.arrival-calendar-grid.days button{
+  width:100%; min-height:34px; border:1px solid transparent; border-radius:50%;
+  background:transparent; color:var(--white); font-family:var(--ui); font-size:13px; cursor:pointer;
+}
+.arrival-calendar-grid.days button:hover,
+.arrival-calendar-grid.days button:focus-visible{ border-color:var(--white); outline:none; }
+.arrival-calendar-grid.days button.selected{ background:var(--white); color:var(--ink); }
+.arrival-calendar-grid.days button:disabled{ color:rgba(255,255,255,.3); cursor:default; }
+.arrival-calendar-clear{
+  border:0; background:transparent; color:rgba(255,255,255,.8); padding:7px;
+  font-family:var(--ui); font-size:11px; text-decoration:underline; text-underline-offset:3px;
+  cursor:pointer; margin-top:7px;
+}
 .optional{ text-transform:none; letter-spacing:.4px; color:var(--muted); }
 .notes-card{
   border:1px solid var(--hairline); border-radius:2px; border-left:2px solid var(--cream);
   padding:14px 16px; margin-top:18px; text-align:left;
 }
 .notes-card .micro{ margin-bottom:8px; color:var(--muted); }
-.questions-link{ display:block; color:var(--ink-2); text-decoration:none; }
-.questions-link .micro{ display:block; }
-.questions-link span:last-child{ font-size:12.5px; line-height:1.6; text-decoration:underline; text-underline-offset:3px; }
+.questions-copy{ color:var(--ink-2); font-size:12.5px; line-height:1.6; }
+.questions-copy a{ color:inherit; text-decoration:underline; text-underline-offset:3px; }
 .custom-contact{ margin:10px 0 4px; text-align:left; }
 .custom-contact .note{ font-size:12.5px; line-height:1.55; }
 .custom-contact .btn{ margin-top:9px; min-width:150px; text-align:center; }
@@ -786,20 +809,22 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .info-section{ margin-top:24px; text-align:left; }
 .info-section + .info-section{ margin-top:28px; }
 .info-section .micro{ margin-bottom:8px; }
+.dress-group-label{ font-family:var(--ui); font-size:10px; letter-spacing:1.6px; margin:15px 0 5px; color:rgba(255,255,255,.65); }
 .info-section .body{ font-size:13.5px; line-height:1.7; }
 .dress-palette{
   display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
-  list-style:none; margin:16px 0 18px; text-align:center;
+  list-style:none; margin:13px 0 19px; text-align:center;
 }
-.dress-palette li{ font-family:var(--ui); font-size:10px; line-height:1.35; color:rgba(255,255,255,.8); }
+.dress-palette.gentlemen{ grid-template-columns:repeat(2,1fr); max-width:145px; margin:13px auto 0; }
 .dress-swatch{
-  display:block; width:44px; height:44px; border-radius:50%; margin:0 auto 7px;
+  display:block; width:46px; height:46px; border-radius:50%; margin:0 auto;
   border:1px solid rgba(255,255,255,.42);
 }
 .dress-swatch.pastel-yellow{ background:#f4e8ad; }
 .dress-swatch.pastel-pink{ background:#efc9d4; }
 .dress-swatch.pastel-green{ background:#c9ddc8; }
-.dress-swatch.nude{ background:#d9baa7; }
+.dress-swatch.khaki{ background:#bdaa85; }
+.dress-swatch.black{ background:#141414; border-color:rgba(255,255,255,.75); }
 #info .btn.solid{ margin-top:20px; }
 
 /* hosted nights note (dynamic, in accommodation details) */
@@ -818,12 +843,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .rsvp-page .hairline{ background:var(--hairline-light); }
 .rsvp-page #rsvp-form input[type=text], .rsvp-page #rsvp-form textarea,
 .rsvp-page #rsvp-form select.rsvp-diet,
-.rsvp-page #details-form input[type=date], .rsvp-page #details-form select{
+.rsvp-page #details-form .arrival-trigger, .rsvp-page #details-form select{
   color:var(--white); border-color:rgba(255,255,255,.3);
 }
 .rsvp-page #rsvp-form input[type=text]:focus, .rsvp-page #rsvp-form textarea:focus,
 .rsvp-page #rsvp-form select.rsvp-diet:focus,
-.rsvp-page #details-form input[type=date]:focus, .rsvp-page #details-form select:focus{
+.rsvp-page #details-form .arrival-trigger:focus, .rsvp-page #details-form select:focus{
   border-color:rgba(255,255,255,.75);
 }
 .rsvp-page ::placeholder{ color:rgba(255,255,255,.42); }
@@ -845,7 +870,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   border-color:rgba(255,255,255,.22); border-left-color:rgba(229,224,216,.7);
   background:rgba(18,18,18,.34);
 }
-.rsvp-page .info-section .body, .rsvp-page .questions-link,
+.rsvp-page .info-section .body, .rsvp-page .questions-copy,
 .rsvp-page .nights-note, .rsvp-page #details-summary{ color:rgba(255,255,255,.85); }
 .rsvp-page .nights-note.ok{ color:#c5d0b2; }   /* the olive, lifted for a dark page */
 
@@ -993,10 +1018,10 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #details-form .field-label{ margin:10px 0 4px; }
   .radio-col{ gap:6px; }
   .radio-col .radio input + span{ padding:9px 12px; }
-  #details-form input[type=date], #details-form select{ padding:8px 12px; }
+  #details-form .arrival-trigger, #details-form select{ padding:8px 12px; }
   .notes-card{ padding:10px 12px; margin-top:10px; }
   .notes-card .micro{ margin-bottom:4px; }
-  .questions-link span:last-child{ font-size:11.5px; line-height:1.65; }
+  .questions-copy{ font-size:11.5px; line-height:1.65; }
   #details-form .btn.solid{ padding:9px 16px; margin-top:12px; }
 }
 

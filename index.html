@@ -28,7 +28,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261003-stay">
+<link rel="stylesheet" href="assets/css/style.css?v=20261003-dress2">
 </head>
 <body>
 
@@ -349,14 +349,20 @@
 
       <div class="info-section">
         <p class="micro">DRESS CODE</p>
-        <p class="body">We invite you to wear pastel yellow, pastel pink, pastel green, or nude.</p>
-        <ul class="dress-palette" aria-label="Suggested dress colours">
-          <li><span class="dress-swatch pastel-yellow" aria-hidden="true"></span><span>Pastel yellow</span></li>
-          <li><span class="dress-swatch pastel-pink" aria-hidden="true"></span><span>Pastel pink</span></li>
-          <li><span class="dress-swatch pastel-green" aria-hidden="true"></span><span>Pastel green</span></li>
-          <li><span class="dress-swatch nude" aria-hidden="true"></span><span>Nude</span></li>
+        <p class="dress-group-label">LADIES</p>
+        <p class="body">Formal attire in the shades below would be lovely. We kindly ask that outfits be free of beading and glitter.</p>
+        <ul class="dress-palette" aria-label="Suggested colours for ladies">
+          <li><span class="sr-only">Pastel yellow</span><span class="dress-swatch pastel-yellow" aria-hidden="true"></span></li>
+          <li><span class="sr-only">Pastel pink</span><span class="dress-swatch pastel-pink" aria-hidden="true"></span></li>
+          <li><span class="sr-only">Pastel green</span><span class="dress-swatch pastel-green" aria-hidden="true"></span></li>
+          <li><span class="sr-only">Khaki</span><span class="dress-swatch khaki" aria-hidden="true"></span></li>
         </ul>
-        <p class="body">For gentlemen, a black or khaki suit is welcome. We kindly ask you to choose outfits without beading or glitter.</p>
+        <p class="dress-group-label">GENTLEMEN</p>
+        <p class="body">A classic suit in either shade below would be most welcome.</p>
+        <ul class="dress-palette gentlemen" aria-label="Suggested suit colours for gentlemen">
+          <li><span class="sr-only">Black</span><span class="dress-swatch black" aria-hidden="true"></span></li>
+          <li><span class="sr-only">Khaki</span><span class="dress-swatch khaki" aria-hidden="true"></span></li>
+        </ul>
       </div>
 
       <div class="info-section">
@@ -381,10 +387,10 @@
           <div class="radio-col">
             <label class="radio"><input type="radio" name="accommodation" value="provided"><span><strong>Asawin Grand Convention Hotel <span class="stars" aria-label="5 stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></strong><em>Our treat &mdash; <a href="https://maps.app.goo.gl/W8K9ERwkXiMMZL7E8" target="_blank" rel="noopener">view on Maps</a></em></span></label>
             <label class="radio"><input type="radio" name="accommodation" value="self"><span><strong>I&rsquo;ll arrange my own stay</strong><em>No accommodation needed</em></span></label>
-            <label class="radio"><input type="radio" name="accommodation" value="custom"><span><strong>Custom arrangements</strong><em>For extra nights or a Ritz-Carlton upgrade</em></span></label>
+            <label class="radio"><input type="radio" name="accommodation" value="custom"><span><strong>Custom arrangements</strong><em>Extra nights at Asawin or a self-funded Ritz-Carlton upgrade</em></span></label>
           </div>
           <div class="custom-contact" id="custom-contact" hidden>
-            <p class="note">Please contact us to arrange the details of your stay.</p>
+            <p class="note">We&rsquo;d be happy to help with your plans, including our group rate at The Ritz-Carlton. Please contact us for details.</p>
             <a class="btn ghost" href="https://wa.me/6281216668858" target="_blank" rel="noopener">Contact here</a>
           </div>
           <div id="details-nights-row" hidden>
@@ -396,9 +402,10 @@
             </select>
             <p class="nights-note" id="details-nights-note"></p>
           </div>
-          <label class="field-label" for="details-arrival">Arrival <span class="optional">(optional &mdash; date &amp; hour)</span></label>
+          <label class="field-label" for="details-arrival-trigger">Arrival <span class="optional">(optional &mdash; date &amp; hour)</span></label>
           <div class="arrival-row">
-            <input id="details-arrival" type="date" min="2027-01-01" max="2027-01-09">
+            <button id="details-arrival-trigger" class="arrival-trigger" type="button" aria-controls="arrival-calendar" aria-expanded="false"><span id="details-arrival-text">mm/dd/yyyy</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 10h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            <input id="details-arrival" type="hidden">
             <select id="details-arrival-hour" aria-label="Arrival hour">
               <option value="">&mdash; hour &mdash;</option>
               <option value="0">00:00</option>
@@ -427,8 +434,15 @@
               <option value="23">23:00</option>
             </select>
           </div>
+          <div class="arrival-calendar" id="arrival-calendar" role="group" aria-label="Choose an arrival date in January 2027" hidden>
+            <p class="arrival-calendar-title">January 2027</p>
+            <div class="arrival-calendar-grid weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div class="arrival-calendar-grid days" id="arrival-days"></div>
+            <button class="arrival-calendar-clear" id="arrival-clear" type="button">Clear date</button>
+          </div>
           <div class="notes-card">
-            <a class="questions-link" href="https://wa.me/6281216668858" target="_blank" rel="noopener"><span class="micro">QUESTIONS?</span><span>Contact us on WhatsApp at +62 812-1666-8858</span></a>
+            <p class="micro">QUESTIONS?</p>
+            <p class="questions-copy">Contact us on WhatsApp at <a href="https://wa.me/6281216668858" target="_blank" rel="noopener">+62 812-1666-8858</a></p>
           </div>
           <button type="submit" class="btn solid">Complete RSVP</button>
           <p class="micro muted center" id="details-note">Required to complete your confirmation</p>
@@ -509,6 +523,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261003-stay"></script>
+<script src="assets/js/main.js?v=20261003-dress2"></script>
 </body>
 </html>
