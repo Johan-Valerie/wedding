@@ -47,7 +47,8 @@
   font-style:normal;
   font-display:swap;
 }
-/* Every "&" on the page is Bodoni Moda's: an upright serif ampersand in
+/* Every "&" on the page is Bodoni Moda's (but the two behind the couple's
+   names, see JV Ampersand Script below): an upright serif ampersand in
    the classic shape (the italic ones read as "Et", not "&"). One 1KB file
    holding that single glyph (Google's text=& subset, SIL Open Font
    License), first in each of the stacks below. unicode-range limits it to
@@ -65,6 +66,16 @@
   src:url("../fonts/Ampersand-Bodoni.woff2") format("woff2");
   unicode-range:U+0026;
   font-weight:100 900; font-style:italic; font-display:swap;
+}
+/* The ghost "&" behind the names on the cover and the first page is
+   Tangerine's, a fine calligraphic "&" (the couple's pick from 23). Also a
+   one-glyph Google text=& file (SIL Open Font License); it blocks briefly
+   rather than swapping shapes, and Bodoni stands in if it never comes. */
+@font-face{
+  font-family:"JV Ampersand Script";
+  src:url("../fonts/Ampersand-Tangerine.woff2") format("woff2");
+  unicode-range:U+0026;
+  font-weight:100 900; font-style:normal; font-display:block;
 }
 
 :root{
@@ -88,6 +99,9 @@
   --display:"JV Ampersand","Playfair Display",Georgia,serif;
   --serif-light:"JV Ampersand","Cormorant Garamond","Cormorant",Georgia,serif;
   --script:"JV Ampersand","Pinyon Script",cursive;
+  /* the line metrics still come from Playfair Display (the one-glyph faces
+     do not cover a space), which the ghost "&"s' margins are worked out for */
+  --amp-script:"JV Ampersand Script","JV Ampersand","Playfair Display",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -310,9 +324,9 @@ h3.serif{ font-size:22px; line-height:1.2; }
    height. The site's one "&" (Bodoni Moda, see the top of this file),
    as on the first page. */
 .amp-lg{
-  font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:calc(clamp(51px,16.8vw,102px) * .51);
-  color:rgba(255,255,255,.4); margin:-.954em 0 -.046em; line-height:1; pointer-events:none;
+  font-family:var(--amp-script); font-style:normal; font-weight:400;
+  font-size:calc(clamp(51px,16.8vw,102px) * .796);
+  color:rgba(255,255,255,.4); margin:-.976em 0 -.024em; line-height:1; pointer-events:none;
 }
 /* Cormorant Garamond: "Dear," small in italic, the name in Medium. Its
    letters run small for their size, so both are set larger than the
@@ -474,9 +488,9 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .names-centred .name-lg:last-of-type{ margin-top:-.13em; }
 .amp-centred{
-  font-family:var(--display); font-style:normal; font-weight:400;
-  font-size:clamp(21px,6.9vw,38px);
-  color:rgba(255,255,255,.4); margin:-.89em 0 .09em; line-height:.8;
+  font-family:var(--amp-script); font-style:normal; font-weight:400;
+  font-size:clamp(33px,10.77vw,59px);
+  color:rgba(255,255,255,.4); margin:-.899em 0 .099em; line-height:.8;
 }
 #hero .datestrip{ font-size:12px; }
 .scroll-cue{
@@ -501,7 +515,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (min-width:1025px){
   .hero-inner{ max-width:620px; }
   .names-centred{ font-size:98px; }
-  .amp-centred{ font-size:41px; }
+  .amp-centred{ font-size:64px; }
   .hero .bg-scrim{ background:linear-gradient(rgba(0,0,0,.42) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.55) 100%); }
 }
 
