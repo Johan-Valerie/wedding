@@ -48,7 +48,8 @@
   font-display:swap;
 }
 /* Every "&" on the page is Bodoni Moda's (but the two behind the couple's
-   names, see JV Ampersand Script below): an upright serif ampersand in
+   names, see JV Ampersand Script below, and the guest's name, which keeps
+   its own face's "&", see --own-display): an upright serif ampersand in
    the classic shape (the italic ones read as "Et", not "&"). One 1KB file
    holding that single glyph (Google's text=& subset, SIL Open Font
    License), first in each of the stacks below. unicode-range limits it to
@@ -102,6 +103,11 @@
   /* the line metrics still come from Playfair Display (the one-glyph faces
      do not cover a space), which the ghost "&"s' margins are worked out for */
   --amp-script:"JV Ampersand Script","JV Ampersand","Playfair Display",Georgia,serif;
+  /* the guest's name ("Ms Siena & Partner") takes the "&" of the face it is
+     set in, so the "&" matches the words beside it: the stacks without the
+     shared Bodoni ampersand */
+  --own-display:"Playfair Display",Georgia,serif;
+  --own-serif-light:"Cormorant Garamond","Cormorant",Georgia,serif;
 }
 @supports (height:100dvh){ :root{ --vh:100dvh; } }
 
@@ -239,7 +245,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   line-height:1.65; color:var(--white);
 }
 .intro-greeting .gamp{
-  display:block; font-family:var(--display); font-weight:400;
+  display:block; font-family:var(--own-display); font-weight:400;
   font-size:13px; line-height:1.9; color:rgba(255,255,255,.78);
 }
 .first-text{
@@ -336,7 +342,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
   margin:0; color:rgba(255,255,255,.9);
 }
 .cover-bottom .guest-name{
-  font-family:var(--serif-light); font-weight:500; font-size:25px; line-height:1.25; margin:2px 0 0;
+  font-family:var(--own-serif-light); font-weight:500; font-size:25px; line-height:1.25; margin:2px 0 0;
   text-wrap:balance;   /* a long two-person name breaks evenly, not "... & Mrs." */
   border-bottom:1px solid rgba(255,255,255,.45);
   display:inline-block; padding:0 22px 8px;
@@ -534,7 +540,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 #dear .content::-webkit-scrollbar{ display:none; }
 /* Keep the personalized name on one line; main.js reduces it further for long names. */
-#dear h2{ font-family:var(--display); font-style:normal; font-weight:500; font-size:24px; margin-top:2px; white-space:nowrap; }
+#dear h2{ font-family:var(--own-display); font-style:normal; font-weight:500; font-size:24px; margin-top:2px; white-space:nowrap; }
 #dear .micro{ font-size:10px; text-transform:none; }
 #dear .body{ font-size:13px; font-family:"JV Ampersand","JV Serif Light","Playfair Display",Georgia,serif; }
 #dear .body + .body{ margin-top:12px; }
