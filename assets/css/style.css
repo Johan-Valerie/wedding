@@ -4,7 +4,7 @@
    frosted glass. All serif: Playfair Display for running text,
    labels and headings, Cormorant Garamond for the soft italic
    lines, Pinyon Script for every name in script, with its original
-   outlines for the couple's names on the cover and the first page (the
+   outlines for the couple's names on the cover, first page and profiles (the
    intro, cover, first page and groom/bride pages are the engagement
    invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
@@ -25,7 +25,7 @@
    Open Font License, which allows modified versions): the hairlines are
    untouched and the thicker strokes are shaved, the thickest by 16 of 2048
    units a side (about 20% lighter overall). Letters A-Z, a-z only. Asking
-   for weight 300 gets it. The cover and hero use the original Regular
+   for weight 300 gets it. The cover, hero and profiles use the original Regular
    above so their large lettering keeps smooth curves and intact joins. */
 @font-face{
   font-family:"Pinyon Script";
@@ -563,7 +563,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .person-name{ position:relative; }
 .name-script{
-  font-family:var(--script); font-size:clamp(50px,15.6vw,84px);
+  font-family:var(--script); font-weight:400; font-size:clamp(50px,15.6vw,84px);
   margin:0; line-height:1.22; white-space:nowrap;
 }
 /* Pinyon's capital J swashes 0.27em back past the text origin; indenting by
