@@ -245,9 +245,11 @@ h3.serif{ font-size:22px; line-height:1.2; }
   line-height:1.65; color:var(--white);
 }
 .intro-greeting .gamp{
-  display:block; font-family:var(--own-display); font-weight:400;
+  display:block; font-family:var(--own-serif-light); font-weight:500;
   font-size:13px; line-height:1.9; color:rgba(255,255,255,.78);
 }
+/* Guest-name ampersands match the landing-page guest name's Cormorant. */
+.guest-amp{ font-family:var(--own-serif-light); font-weight:500; font-style:normal; }
 .first-text{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   animation:1.2s fadeInOut 2.3s ease-in-out forwards;
@@ -449,7 +451,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .child .eyebrow{ margin-bottom:14px; font-variant-numeric:lining-nums; }
 /* Pages 1-9 (the hero to the countdown) are set a size smaller than the
    cover and the RSVP pages; each page's own rules follow its section. */
-#hero .eyebrow, #verse .eyebrow, #story .eyebrow, #film .eyebrow,
+#hero .eyebrow, #verse .eyebrow, #story .eyebrow,
 #countdown .eyebrow{ font-size:11.5px; }
 
 /* transparent “windows” that reveal the fixed video */
@@ -586,12 +588,6 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* story */
 #story h2.serif{ font-size:20px; }
 .story-text{ font-size:18.5px; line-height:1.55; margin-top:14px; }
-
-/* film window */
-#film{ align-items:flex-end; justify-content:center; background:transparent; }
-.film-caption{ margin-bottom:96px; padding:14px 22px; background:rgba(255,255,255,.20); }
-.film-caption .eyebrow{ margin-bottom:4px; color:var(--white); }
-.film-caption .micro{ font-size:10px; color:rgba(255,255,255,.75); }
 
 /* wedding-day events: one shared date and venue above a timed schedule */
 #events{ color:var(--white); }
@@ -823,24 +819,29 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #details-summary{ color:var(--ink-2); }
 
 /* information step (dress code + adults-only note, before accommodation) */
-#info .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-/* lift each step's button + note clear of the fixed music button */
-#info .content, #details .content{ padding-bottom:80px; }
-#info h2{ margin-bottom:6px; }
-.info-section{ margin-top:24px; text-align:left; }
-.info-section + .info-section{ margin-top:28px; }
-.info-section .micro{ margin-bottom:8px; }
-.dress-group-label{ font-family:var(--ui); font-size:10px; letter-spacing:1.6px; margin:15px 0 5px; color:rgba(255,255,255,.65); }
+#info .content{
+  max-height:none; overflow:visible;
+  padding:clamp(12px,calc(var(--vh) * .024),24px) 24px 68px;
+}
+/* Keep the information page and its button on one screen. */
+#details .content{ padding-bottom:80px; }
+#info .eyebrow{ font-size:10.5px; margin-bottom:8px; }
+#info h2{ font-size:clamp(20px,calc(var(--vh) * .0315),23px); margin-bottom:4px; }
+.info-section{ margin-top:clamp(10px,calc(var(--vh) * .018),20px); text-align:left; }
+.info-section + .info-section{ margin-top:clamp(14px,calc(var(--vh) * .022),22px); }
+.info-section .micro{ margin-bottom:6px; }
+.dress-group-label{ font-family:var(--ui); font-size:10px; letter-spacing:1.6px; margin:8px 0 4px; color:rgba(255,255,255,.65); }
 /* the dress code's theme, under its label, in the site's soft italic */
-.dress-theme{ font-size:19px; line-height:1.25; margin:-2px 0 2px; color:var(--white); }
-.info-section .body{ font-size:13.5px; line-height:1.7; }
+.dress-theme{ font-size:17px; line-height:1.25; margin:-2px 0 2px; color:var(--white); }
+.info-section .body{ font-size:clamp(11.5px,calc(var(--vh) * .018),13.5px); line-height:1.5; }
 .dress-palette{
   display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px;
-  list-style:none; margin:13px 0 19px; text-align:center;
+  list-style:none; margin:8px 0 10px; text-align:center;
 }
-.dress-palette.gentlemen{ grid-template-columns:repeat(2,1fr); max-width:145px; margin:13px auto 0; }
+.dress-palette.gentlemen{ grid-template-columns:repeat(2,1fr); max-width:145px; margin:8px auto 0; }
 .dress-swatch{
-  display:block; width:46px; height:46px; border-radius:50%; margin:0 auto;
+  display:block; width:clamp(26px,calc(var(--vh) * .045),40px); aspect-ratio:1;
+  border-radius:50%; margin:0 auto;
   border:1px solid rgba(255,255,255,.42);
 }
 .dress-swatch.pastel-yellow{ background:#f4e8ad; }
@@ -848,7 +849,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .dress-swatch.pastel-green{ background:#adbba1; }   /* Pantone 15-6313 TCX Laurel Green */
 .dress-swatch.khaki{ background:#bdaa85; }
 .dress-swatch.black{ background:#141414; border-color:rgba(255,255,255,.75); }
-#info .btn.solid{ margin-top:20px; }
+#info .btn.solid{ font-size:10.5px; padding:10px 14px; margin-top:14px; }
+#info > .content > .note{ margin-top:8px; font-size:11.5px; }
 
 /* hosted nights note (dynamic, in accommodation details) */
 .nights-note{ font-size:12px; line-height:1.55; margin-top:8px; color:var(--ink-2); }
@@ -903,16 +905,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #wishes .note{ color:rgba(255,255,255,.72); font-size:15px; text-align:center; }
 #wish-list{ text-align:left; min-height:264px; }
 .wish{
-  border:1px solid rgba(255,255,255,.22); border-radius:2px;
-  padding:12px 14px; margin-bottom:8px;
-  background:rgba(18,18,18,.34);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  display:none;
+  padding:0; margin:0 0 22px; display:none;
 }
 .wish.show{ display:block; animation:wishIn .4s ease; }
 @keyframes wishIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
-.wish strong{ font-size:11px; letter-spacing:1px; text-transform:uppercase; display:block; margin-bottom:4px; color:var(--white); }
-.wish p{ font-size:13px; font-weight:300; line-height:1.6; color:rgba(255,255,255,.85); }
+.wish strong{ font-size:13px; font-weight:600; letter-spacing:.2px; display:block; margin-bottom:5px; color:var(--white); }
+.wish p{ font-size:13px; font-weight:400; line-height:1.6; color:rgba(255,255,255,.85); }
 .wish-nav{ display:flex; justify-content:center; gap:8px; margin-top:14px; }
 #wishes .btn.ghost{ color:var(--white); border-color:rgba(255,255,255,.5); }
 #wishes .btn.ghost:hover{ background:rgba(255,255,255,.14); color:var(--white); }
@@ -1035,7 +1033,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 @media (max-height:760px){
 
   /* the details form is even taller — compact it in step (keep bottom clearance) */
-  #details .content, #info .content{ padding:16px 26px 68px; }
+  #details .content{ padding:16px 26px 68px; }
   #details .eyebrow{ margin-bottom:6px; }
   #details h2{ font-size:21px; margin-bottom:2px; }
   #details-form .field-label{ margin:10px 0 4px; }
@@ -1064,6 +1062,11 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* SE-class screens in Safari (~550px tall): place the longer invitation
    below the faces and keep the schedule clear of the floating controls. */
 @media (max-height:600px){
+  #info .content{ padding:12px 18px 52px; }
+  #info .eyebrow{ display:none; }
+  #info .info-section{ margin-top:8px; }
+  #info .info-section + .info-section{ margin-top:12px; }
+  #info .btn.solid{ letter-spacing:.5px; margin-top:12px; }
   #dear .content{ padding-bottom:calc(var(--vh) * .13); }
   #dear .body{ font-size:12px; line-height:1.65; }
   #events .events-inner{ padding-top:64px; padding-bottom:72px; }

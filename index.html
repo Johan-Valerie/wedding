@@ -13,8 +13,9 @@
 <!-- Fonts, all serif: Playfair Display for running text, labels and
      headings, Cormorant Garamond for the soft italic lines, the small notes
      and the cover's greeting; Pinyon Script for every name in script
-     (original outlines for the opening and profile names), self-hosted, see style.css. Every
-     "&" is Bodoni Moda's, from a self-hosted one-glyph file. -->
+     (original outlines for the opening and profile names), self-hosted, see style.css.
+     Guest-name ampersands use the cover's Cormorant Garamond; see style.css
+     for the other ampersand faces. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300;1,400&display=swap" rel="stylesheet">
@@ -29,7 +30,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261003-welcome-rsvp">
+<link rel="stylesheet" href="assets/css/style.css?v=20261004-layout">
 </head>
 <body>
 
@@ -214,14 +215,6 @@
     </div>
   </section>
 
-  <!-- 7 · FILM window over video -->
-  <section class="child window" id="film">
-    <div class="film-caption glass" data-aos="fade">
-      <p class="eyebrow">A MOMENT IN MOTION</p>
-      <p class="micro muted">FILM WITH LOVE</p>
-    </div>
-  </section>
-
   <!-- 8 · EVENTS — one shared date and venue, then a timed schedule for the
        three wedding-day events. One pair of buttons serves the page; the
        calendar file holds all of the guest's events. Holy Matrimony (and
@@ -288,14 +281,14 @@
   <section class="child window" id="countdown">
     <div class="section-scrim dark"></div>
     <div class="content" data-aos="fade">
-      <p class="eyebrow light">ALMOST TIME FOR OUR CELEBRATION</p>
+      <p class="eyebrow light">COUNTING DOWN TO OUR WEDDING DAY</p>
       <div class="count-grid light">
         <div class="count-cell"><span id="cd-days">0</span><label>Days</label></div>
         <div class="count-cell"><span id="cd-hours">0</span><label>Hours</label></div>
         <div class="count-cell"><span id="cd-mins">0</span><label>Minutes</label></div>
         <div class="count-cell"><span id="cd-secs">0</span><label>Seconds</label></div>
       </div>
-      <p class="serif-italic light">Saturday, 9 January 2027</p>
+      <p class="serif-italic light"><time datetime="2027-01-09T15:00:00+07:00">Saturday, 9 January 2027</time></p>
     </div>
   </section>
 
@@ -526,6 +519,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261003-welcome-rsvp"></script>
+<script src="assets/js/main.js?v=20261004-layout"></script>
 </body>
 </html>

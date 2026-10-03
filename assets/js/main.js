@@ -186,6 +186,17 @@
   (function fitDearGuestName() {
     var name = $('#dear .guest-name-slot');
     if (!name) return;
+    var parts = name.textContent.split('&');
+    name.textContent = '';
+    parts.forEach(function (part, i) {
+      if (i) {
+        var amp = document.createElement('span');
+        amp.className = 'guest-amp';
+        amp.textContent = '&';
+        name.appendChild(amp);
+      }
+      name.appendChild(document.createTextNode(part));
+    });
     var textRange = document.createRange();
     textRange.selectNodeContents(name);
     function fit() {
