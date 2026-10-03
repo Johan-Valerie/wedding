@@ -462,16 +462,9 @@
   if (wishNext) wishNext.addEventListener('click', function () { showWishPage(wishPage + 1); });
   loadWishes();
 
-  /* ── two-stage RSVP ──────────────────────────────────────── */
-  /* Posts don't make the guest wait for Apps Script, which takes 3–10s to
-     answer even a read: the guest is thanked as soon as the request has left
-     the device (~1.2s at most). The reply is still read when it lands — if the
-     sheet refused the answer (busy, an error) `on.refused` runs so the page
-     can say so and offer to send again; if the reply can't be read at all,
-     `on.unsure` runs. keepalive lets the request finish even if the page is
-     closed. The body is form fields, not JSON, because every version of the
-     backend reads form fields — a JSON body is invisible to the older one,
-     which would thank the guest and save nothing. */
+  /* Open tracking can finish in the background. RSVP answers use the
+     confirmed, ordered saveResponse queue below. All posts use form fields
+     so older copies of the Apps Script backend can still read them. */
   function sendApi(fields, on) {
     on = on || {};
     var body = Object.keys(fields).map(function (k) {
@@ -608,27 +601,42 @@
   var infoContinue = $('#info-continue');
   if (infoContinue) infoContinue.addEventListener('click', function () { unlockDetails(true); });
   function showDetailsDone(accomCode, arrival, nights) {
+    editingResponse = false;
+    if (rsvpSection) rsvpSection.hidden = true;
+    unlockInfo(false);
+    unlockDetails(false);
+    if (infoContinue) infoContinue.hidden = true;
+    var progressNote = $('#info-progress-note');
+    if (progressNote) progressNote.hidden = true;
+    var navRsvp = $('#nav-menu a[href="#rsvp"]') || $('#nav-menu a[data-rsvp-link]');
+    if (navRsvp) { navRsvp.setAttribute('data-rsvp-link', ''); navRsvp.setAttribute('href', '#details'); }
     var wrap = $('#details-form-wrap'), done = $('#details-done');
     if (wrap) wrap.hidden = true;
     if (done) done.hidden = false;
+    var doneLine = $('#details-done-line');
+    var yes = attendingYes();
+    if (doneLine) doneLine.innerHTML = yes
+      ? 'Your RSVP is complete.<br>We can\u2019t wait to celebrate with you.'
+      : 'Your response is saved.<br>Thank you for letting us know. We\u2019ll miss you!';
     var parts = [];
     var n = parseInt(nights, 10);
     if (accomCode === 'upgrade' || (accomCode === 'provided' && n > HOSTED_NIGHTS)) accomCode = 'custom';
-    if (accomCode === 'provided') {
+    if (yes && accomCode === 'provided') {
       parts.push('Asawin Grand Convention Hotel');
       parts.push(n === 1 ? 'Your one-night stay is with our compliments.'
         : n === 2 ? 'Your two-night stay is with our compliments.'
         : 'Your stay is with our compliments.');
-    } else if (accomCode === 'self') {
+    } else if (yes && accomCode === 'self') {
       parts.push('Self-arranged stay');
-    } else if (accomCode === 'custom') {
+    } else if (yes && accomCode === 'custom') {
       parts.push('Custom arrangements selected. Please contact us, and we\u2019ll be happy to help with your stay.');
     }
-    if (arrival) parts.push('arriving ' + arrival);
+    if (yes && arrival) parts.push('arriving ' + arrival);
     var sum = $('#details-summary');
     if (sum) sum.textContent = parts.join('  ·  ');
     var contact = $('#details-contact');
-    if (contact) contact.hidden = accomCode !== 'custom';
+    if (contact) contact.hidden = !yes || accomCode !== 'custom';
+    onScroll();
   }
 
   /* the hosted Asawin stay is limited to two nights */
@@ -668,6 +676,7 @@
      guest with a link never types a separate identity; the names and diets on
      the second step go to the Guest List tab (and the hotel booking). */
   var form = $('#rsvp-form');
+  var rsvpSection = $('#rsvp');
   var step1 = $('#rsvp-step1'), step2 = $('#rsvp-step2');
   var nextBtn = $('#rsvp-next'), sendBtn = $('#rsvp-send');
   var confirmBtn = $('#rsvp-confirm'), backBtn = $('#rsvp-back');
@@ -680,17 +689,176 @@
   var dietaryReady = false; // show choices only after the deployed backend can save them
   var welcomeDinnerReady = false;
   var customReady = false;  // the current backend must also recognize custom stays
-  var guestFieldsEdited = false;
+  var partialReady = false; // accepts unfinished dinner choices while editing
   var touched = false;      // a guest already filling in keeps their form over a late restore
-  var answered = false;     // an answer went out; editing it re-arms the buttons
   var SEND_LABEL = sendBtn ? sendBtn.textContent : '';
   var CONFIRM_LABEL = confirmBtn ? confirmBtn.textContent : '';
+  var guestPage = 0;
+  var editingResponse = false;
+  var responseData = null;
+  var editSaveTimer;
+  var saveQueue = Promise.resolve();
+  var saveVersion = 0;
+  var cacheKey = guestKey ? 'jv-wedding-response:' + guestKey : '';
 
-  /* After an answer is sent its button stays disabled, which on its own would
-     leave the guest stuck: a disabled default button also swallows Enter, and
-     a decline could never be re-sent. Any edit puts the buttons back. */
+  function saveNote(id, msg) {
+    var note = $(id);
+    if (note) { note.textContent = msg; note.hidden = !msg; }
+  }
+  function setFormBusy(target, busy) {
+    $$('input, select, textarea, button', target).forEach(function (el) {
+      if (busy) {
+        el.setAttribute('data-saving-disabled', String(el.disabled));
+        el.disabled = true;
+      } else if (el.hasAttribute('data-saving-disabled')) {
+        el.disabled = el.getAttribute('data-saving-disabled') === 'true';
+        el.removeAttribute('data-saving-disabled');
+      }
+    });
+  }
+  function rememberResponse(fields) {
+    responseData = responseData || { ok: true, found: true, detailsDone: false };
+    responseData.attending = fields.attending;
+    responseData.pax = Number(fields.pax) || 0;
+    responseData.wishes = fields.wishes;
+    if (fields.guests) {
+      savedNames = fields.guests.slice();
+      responseData.guests = savedNames.slice();
+    }
+    if (fields.diets) {
+      savedDiets = fields.diets.slice();
+      responseData.diets = savedDiets.slice();
+    }
+    if (fields.welcomeDinner) {
+      savedWelcomeDinner = fields.welcomeDinner.slice();
+      responseData.welcomeDinner = savedWelcomeDinner.slice();
+    }
+    if (fields.attending === 'no') {
+      responseData.guests = []; responseData.diets = []; responseData.welcomeDinner = [];
+    }
+    if (fields.action === 'details') {
+      responseData.accommodation = fields.accommodation;
+      responseData.nights = fields.nights;
+      responseData.arrival = fields.arrival
+        ? fields.arrival + ' ' + ('0' + fields.arrivalHour).slice(-2) + ':00' : '';
+      responseData.detailsDone = true;
+    }
+    if (cacheKey) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(responseData)); } catch (err) {}
+    }
+  }
+  /* Edits are sent in order and only marked saved after the sheet confirms
+     them. A later change cannot be overtaken by an older, slower request. */
+  function saveResponse(fields, noteId) {
+    clearTimeout(editSaveTimer);
+    if (!partialReady && responseData && responseData.wishes && fields.wishes === '') {
+      saveNote(noteId, 'Your previous wish could not be removed. Please try again later.');
+      return Promise.reject(new Error('wish_clear_unavailable'));
+    }
+    var version = ++saveVersion;
+    saveNote(noteId, 'Saving changes\u2026');
+    var save = saveQueue.catch(function () {}).then(function () {
+      if (!API_URL) return;
+      var body = Object.keys(fields).map(function (k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(
+          Array.isArray(fields[k]) ? JSON.stringify(fields[k]) : fields[k]);
+      }).join('&');
+      return fetch(API_URL, {
+        method: 'POST', keepalive: true, body: body,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || d.ok !== true) throw new Error(d && d.error || 'save_failed');
+      });
+    }).then(function () {
+      rememberResponse(fields);
+      if (version === saveVersion) saveNote(noteId, editingResponse ? 'Changes saved.' : '');
+    }).catch(function (err) {
+      if (version === saveVersion) saveNote(noteId, 'Couldn\u2019t save your changes. Please try again.');
+      throw err;
+    });
+    saveQueue = save;
+    return save;
+  }
+  function attendancePayload() {
+    var yes = attendingYes();
+    return { action: 'rsvp', key: who(), name: who(), attending: yes ? 'yes' : 'no',
+      pax: yes ? parseInt(guestsInput && guestsInput.value, 10) || 1 : 0,
+      wishes: ($('#rsvp-wishes').value || '').trim(), replaceWishes: true };
+  }
+  function guestPayload(validateAll) {
+    var fields = attendancePayload();
+    var inputs = $$('.rsvp-guest', nameBox);
+    fields.guests = inputs.map(function (el) { return el.value.trim(); });
+    var missing = fields.guests.indexOf('');
+    if (missing >= 0) {
+      if (validateAll) { showGuestPage(missing); rsvpNote('Please fill in every guest name.'); inputs[missing].focus(); }
+      // A newly added guest may be on the next screen. Save edits to the
+      // existing guests now, keeping the requested party size separately.
+      if (validateAll || missing < savedNames.length || missing === 0 ||
+          fields.guests.slice(missing).some(Boolean)) return null;
+      fields.guests = fields.guests.slice(0, missing);
+    }
+    if (validateAll) fields.pax = fields.guests.length;
+    if (dietaryReady) fields.diets = $$('.rsvp-diet', nameBox).slice(0, fields.guests.length).map(function (el) { return el.value; });
+    if (welcomeDinnerReady) {
+      var welcomes = $$('.rsvp-welcome-dinner', nameBox).slice(0, fields.guests.length);
+      var choices = welcomes.map(function (el) { return el.value; });
+      var unanswered = choices.indexOf('');
+      if (unanswered >= 0 && validateAll) {
+        showGuestPage(unanswered);
+        rsvpNote('Please select welcome-dinner attendance for each guest.');
+        welcomes[unanswered].focus();
+        return null;
+      }
+      if (unanswered >= 0 && !partialReady) return null;
+      fields.welcomeDinner = choices;
+      if (!validateAll && partialReady) fields.partial = true;
+    }
+    return fields;
+  }
+  function detailsPayload(reportError) {
+    var chosen = detailsForm && $('input[name=accommodation]:checked', detailsForm);
+    var nights = (nightsSel && nightsSel.value) || '';
+    var date = (arrivalInput && arrivalInput.value) || '';
+    var hour = ($('#details-arrival-hour') && $('#details-arrival-hour').value) || '';
+    var error = !chosen ? 'Please choose an accommodation option first.'
+      : chosen.value === 'custom' && !customReady ? 'Please contact us on WhatsApp to arrange this stay.'
+      : chosen.value === 'provided' && (Number(nights) < 1 || Number(nights) > HOSTED_NIGHTS) ? 'Please select one or two nights.'
+      : date && hour === '' ? 'Please pick your arrival hour too.'
+      : !date && hour !== '' ? 'Please pick your arrival date too.' : '';
+    if (error) { if (reportError) saveNote('#details-note', error); return null; }
+    var fields = attendancePayload();
+    fields.action = 'details'; fields.attending = 'yes';
+    fields.guests = savedNames.slice(); fields.pax = savedNames.length;
+    if (dietaryReady) fields.diets = savedDiets.slice();
+    if (welcomeDinnerReady && savedWelcomeDinner.length === savedNames.length &&
+        savedWelcomeDinner.every(function (v) { return v === 'yes' || v === 'no'; })) {
+      fields.welcomeDinner = savedWelcomeDinner.slice();
+    }
+    fields.accommodation = chosen.value;
+    fields.nights = chosen.value === 'provided' ? nights : '';
+    fields.arrival = date; fields.arrivalHour = hour;
+    return fields;
+  }
+  function scheduleEditSave(stage, delay) {
+    if (!editingResponse) return;
+    clearTimeout(editSaveTimer);
+    editSaveTimer = setTimeout(function () {
+      var fields = stage === 'details' ? detailsPayload(false)
+        : stage === 'guests' ? guestPayload(false) : attendancePayload();
+      if (!fields) {
+        saveNote(stage === 'details' ? '#details-note' : '#rsvp-note',
+          stage === 'details' ? 'Please complete your accommodation details to save your changes.'
+            : 'Please complete the guest details to save your changes.');
+        return;
+      }
+      if (!fields.key) return;
+      saveResponse(fields, stage === 'details' ? '#details-note' : '#rsvp-note').catch(function () {});
+    }, delay);
+  }
+
+  /* Reopen a saved response with the usual navigation labels. */
   function resetButtons() {
-    answered = false;
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = SEND_LABEL; }
     if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = CONFIRM_LABEL; }
     if (backBtn) backBtn.hidden = false;
@@ -723,6 +891,14 @@
       content.scrollTop = 0;
       content.classList.toggle('on-step2', n === 2);   // clears the fixed music button
     }
+  }
+  function showGuestPage(index) {
+    var entries = $$('.guest-entry', nameBox);
+    guestPage = Math.max(0, Math.min(index, entries.length - 1));
+    entries.forEach(function (entry, i) { entry.hidden = i !== guestPage; });
+    var progress = $('#rsvp-guest-progress');
+    if (progress) progress.textContent = 'Guest ' + (guestPage + 1) + ' of ' + entries.length;
+    if (confirmBtn) { confirmBtn.textContent = CONFIRM_LABEL; confirmBtn.disabled = false; }
   }
   /* Rebuilt whenever the count changes. Fields already on screen keep their
      values; new positions use an earlier answer or the invitation names. */
@@ -789,26 +965,40 @@
       }
       nameBox.appendChild(entry);
     }
+    showGuestPage(guestPage);
   }
   function goNext() {
     touched = true;
     buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
-    showStep(2);
     rsvpNote('');
+    function next() { showStep(2); showGuestPage(0); }
+    if (editingResponse) {
+      setFormBusy(form, true);
+      if (nextBtn) { nextBtn.disabled = true; nextBtn.textContent = 'Saving\u2026'; }
+      saveResponse(attendancePayload(), '#rsvp-note').then(next).catch(function () {}).finally(function () {
+        setFormBusy(form, false);
+        if (nextBtn) { nextBtn.disabled = false; nextBtn.textContent = 'CONTINUE'; }
+      });
+    } else next();
   }
 
   if (form) {
     $$('input[name=attendance]', form).forEach(function (r) {
       r.addEventListener('change', syncAttendance);
     });
-    var edited = function () { touched = true; if (answered) resetButtons(); };
+    var edited = function (event) {
+      touched = true;
+      scheduleEditSave(step2 && !step2.hidden ? 'guests' : 'attendance', event.type === 'input' ? 700 : 0);
+    };
     form.addEventListener('input', edited);
     form.addEventListener('change', edited);
+    [stepMinus, stepPlus].forEach(function (btn) {
+      if (btn) btn.addEventListener('click', function () {
+        touched = true;
+        scheduleEditSave('attendance', 0);
+      });
+    });
     syncAttendance();
-  }
-  if (nameBox) {
-    nameBox.addEventListener('input', function () { guestFieldsEdited = true; });
-    nameBox.addEventListener('change', function () { guestFieldsEdited = true; });
   }
   if (API_URL) {
     fetch(API_URL + '?action=features')
@@ -816,6 +1006,7 @@
       .then(function (d) {
         if (!d) return;
         customReady = d.customArrangements === true;
+        partialReady = d.partialRsvp === true;
         var guestChoicesChanged = false;
         if (d.dietaryChoices === true && !dietaryReady) {
           dietaryReady = true;
@@ -831,10 +1022,28 @@
       }).catch(function () {});
   }
   if (nextBtn) nextBtn.addEventListener('click', goNext);
-  if (backBtn) backBtn.addEventListener('click', function () { showStep(1); rsvpNote(''); });
+  if (backBtn) backBtn.addEventListener('click', function () {
+    clearTimeout(editSaveTimer);
+    if (editingResponse) {
+      var fields = guestPayload(false);
+      if (fields) saveResponse(fields, '#rsvp-note').catch(function () {});
+    }
+    if (guestPage > 0) showGuestPage(guestPage - 1);
+    else showStep(1);
+  });
   var detailsEditBtn = $('#details-edit-response');
   if (detailsEditBtn) detailsEditBtn.addEventListener('click', function () {
     touched = true;
+    editingResponse = true;
+    if (rsvpSection) rsvpSection.hidden = false;
+    if (infoSection) infoSection.hidden = true;
+    if (detailsSection) detailsSection.hidden = true;
+    if (infoContinue) infoContinue.hidden = false;
+    var progressNote = $('#info-progress-note');
+    if (progressNote) progressNote.hidden = false;
+    var navRsvp = $('#nav-menu a[data-rsvp-link]');
+    if (navRsvp) navRsvp.setAttribute('href', '#rsvp');
+    reopenDetails('Changes save as you update your details.');
     resetButtons();
     showStep(1);
     rsvpNote('');
@@ -845,83 +1054,69 @@
     e.preventDefault();
     if ($('#rsvp-hp') && $('#rsvp-hp').value) return;
     var yes = attendingYes();
-    // Enter pressed in a step-1 field while attending means "next", not "send"
     if (yes && step2 && step2.hidden) { goNext(); return; }
-
-    var names = [];
-    var diets = [];
-    var welcomeDinner = [];
+    if (!who()) { rsvpNote('Please use your personal invitation link to RSVP.'); return; }
+    touched = true;
+    clearTimeout(editSaveTimer);
+    var inputs = $$('.rsvp-guest', nameBox);
+    var welcomes = $$('.rsvp-welcome-dinner', nameBox);
     if (yes) {
-      names = $$('.rsvp-guest', nameBox).map(function (el) { return el.value.trim(); });
-      diets = $$('.rsvp-diet', nameBox).map(function (el) { return el.value; });
-      if (!names.length) { rsvpNote('Please tell us who is joining'); return; }
-      if (names.some(function (n) { return !n; })) { rsvpNote('Please fill in every guest name'); return; }
-      if (welcomeDinnerReady) {
-        var welcomeFields = $$('.rsvp-welcome-dinner', nameBox);
-        welcomeDinner = welcomeFields.map(function (el) { return el.value; });
-        if (welcomeDinner.length !== names.length || welcomeDinner.some(function (v) { return v !== 'yes' && v !== 'no'; })) {
-          rsvpNote('Please select welcome-dinner attendance for each guest.');
-          var missingWelcome = welcomeFields.filter(function (el) { return !el.value; })[0];
-          if (missingWelcome) missingWelcome.focus();
-          return;
+      if (!inputs[guestPage] || !inputs[guestPage].value.trim()) {
+        rsvpNote('Please enter this guest\u2019s full name.');
+        if (inputs[guestPage]) inputs[guestPage].focus();
+        return;
+      }
+      if (welcomeDinnerReady && welcomes[guestPage] && !welcomes[guestPage].value) {
+        rsvpNote('Please choose whether this guest will join the welcome dinner.');
+        welcomes[guestPage].focus();
+        return;
+      }
+      if (guestPage < inputs.length - 1) {
+        var partial = editingResponse && guestPayload(false);
+        if (partial) {
+          setFormBusy(form, true);
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = 'Saving\u2026';
+          saveResponse(partial, '#rsvp-note').then(function () {
+            showGuestPage(guestPage + 1);
+          }).catch(function () {}).finally(function () {
+            setFormBusy(form, false);
+            confirmBtn.disabled = false; confirmBtn.textContent = CONFIRM_LABEL;
+          });
+        } else {
+          showGuestPage(guestPage + 1);
+          rsvpNote(editingResponse ? 'Please complete the guest details to save your changes.' : '');
         }
+        return;
       }
     }
-    var name = who();
-    if (!name) {
-      rsvpNote(yes ? 'Please enter Guest 1’s name' : 'Please use your personal invitation link to RSVP');
-      return;
-    }
-    touched = true;
-    var text = ($('#rsvp-wishes').value || '').trim();
+    var fields = yes ? guestPayload(true) : attendancePayload();
+    if (!fields) return;
     var btn = yes ? confirmBtn : sendBtn;
-
-    function afterOk() {
-      answered = true;
-      savedNames = names;
-      if (yes) savedDiets = diets;
-      if (welcomeDinnerReady || !yes) savedWelcomeDinner = welcomeDinner;
+    setFormBusy(form, true);
+    if (btn) { btn.textContent = 'Saving\u2026'; btn.disabled = true; }
+    saveResponse(fields, '#rsvp-note').then(function () {
       if (yes) {
-        reopenDetails('Required to complete your confirmation');
-        if (btn) { btn.textContent = 'Confirmed ✓ — a few notes below'; btn.disabled = true; }
-        if (backBtn) backBtn.hidden = true;
-        rsvpNote(text
-          ? 'Your wish will appear on the wall once approved'
-          : 'Please read the notes below, then complete your details');
+        if (infoContinue) infoContinue.hidden = false;
+        var progress = $('#info-progress-note');
+        if (progress) progress.hidden = false;
+        reopenDetails(editingResponse ? 'Changes save as you update your details.'
+          : 'Required to complete your confirmation');
         unlockInfo(true);
       } else {
-        if (btn) { btn.textContent = 'Thank you — we’ll miss you!'; btn.disabled = true; }
-        rsvpNote(text ? 'Your wish will appear on the wall once approved' : '');
+        showDetailsDone('', '', '');
+        scrollToSection(detailsSection);
       }
-    }
-
-    if (API_URL) {
-      if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
-      var rsvpPayload = { action: 'rsvp', key: name, name: name, attending: yes ? 'yes' : 'no',
-                          pax: yes ? names.length : 0, guests: names, diets: diets, wishes: text };
-      if (welcomeDinnerReady || !yes) rsvpPayload.welcomeDinner = welcomeDinner;
-      sendApi(rsvpPayload, {
-        refused: function () {
-          resetButtons();
-          rsvpNote('Sorry — that didn’t save. Please send it again.');
-        },
-        unsure: function () {
-          rsvpNote('We couldn’t confirm this was saved — if it’s missing next time you open your link, please send it again.');
-        }
-      })
-        .then(function () { afterOk(); setTimeout(loadWishes, 1200); })
-        .catch(function () {
-          if (btn) { btn.textContent = 'Couldn’t send — tap to retry'; btn.disabled = false; }
-        });
-    } else {
-      if (text) {
-        var list = storedWishes();
-        list.unshift({ name: name, text: text });
+      if (!API_URL && fields.wishes) {
+        var list = storedWishes().filter(function (wish) { return wish.name !== fields.name; });
+        list.unshift({ name: fields.name, text: fields.wishes });
         try { localStorage.setItem('jv-wishes', JSON.stringify(list.slice(0, 40))); } catch (err) {}
-        loadWishes();
       }
-      afterOk();
-    }
+      loadWishes();
+    }).catch(function () {}).finally(function () {
+      setFormBusy(form, false);
+      if (btn) { btn.textContent = yes ? CONFIRM_LABEL : SEND_LABEL; btn.disabled = false; }
+    });
   });
 
   /* Reopen a completed details form after a new RSVP or a refused save. */
@@ -936,74 +1131,30 @@
     if (note) note.textContent = msg;
   }
 
-  /* final stage: accommodation + nights + arrival */
-  if (detailsForm) detailsForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var chosen = detailsForm.querySelector('input[name=accommodation]:checked');
-    var note = $('#details-note');
-    if (!chosen) {
-      if (note) note.textContent = 'Please choose an accommodation option first';
-      return;
-    }
-    if (chosen.value === 'custom' && !customReady) {
-      if (note) note.textContent = 'Please contact us on WhatsApp to arrange this stay. We’ll help you complete your RSVP.';
-      var contact = $('#custom-contact .btn');
-      if (contact) contact.focus();
-      return;
-    }
-    var nights = (nightsSel && nightsSel.value) || '';
-    if (chosen.value === 'provided' && (!nights || parseInt(nights, 10) > HOSTED_NIGHTS)) {
-      if (note) note.textContent = 'Please select one or two nights';
-      if (nightsSel) nightsSel.focus();
-      return;
-    }
-    var arrival = ($('#details-arrival') && $('#details-arrival').value) || '';
-    var hourSel = $('#details-arrival-hour');
-    var hour = (hourSel && hourSel.value) || '';
-    if (arrival && hour === '') {
-      if (note) note.textContent = 'Please pick your arrival hour too';
-      if (hourSel) hourSel.focus();
-      return;
-    }
-    if (!arrival && hour !== '') {
-      if (note) note.textContent = 'Please pick your arrival date too';
-      return;
-    }
-    var arrivalFull = arrival ? arrival + (hour !== '' ? ' ' + ('0' + hour).slice(-2) + ':00' : '') : '';
-    var btn = $('button[type=submit]', detailsForm);
-
-    if (API_URL) {
-      if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
-      var detailsPayload = { action: 'details', key: who(), name: who(),
-                /* The attendance answer rides along, so if the RSVP post before
-                   this one was lost the sheet still gets a complete row. */
-                attending: 'yes',
-                pax: savedNames.length || parseInt(guestsInput && guestsInput.value, 10) || 1,
-                guests: savedNames, diets: savedDiets,
-                wishes: ($('#rsvp-wishes').value || '').trim(),
-                accommodation: chosen.value, nights: nights,
-                arrival: arrival, arrivalHour: hour };
-      if (savedWelcomeDinner.length === savedNames.length && savedWelcomeDinner.length &&
-          savedWelcomeDinner.every(function (v) { return v === 'yes' || v === 'no'; })) {
-        detailsPayload.welcomeDinner = savedWelcomeDinner;
-      }
-      sendApi(detailsPayload, {
-        refused: function () {
-          reopenDetails('Sorry — your details didn’t save. Please tap Complete RSVP again.');
-        },
-        unsure: function () {
-          var sum = $('#details-summary');
-          if (sum) sum.textContent += ' — we couldn’t confirm this was saved; if it’s missing next time you open your link, please send it again.';
-        }
-      })
-        .then(function () { showDetailsDone(chosen.value, arrivalFull, nights); })
-        .catch(function () {
-          if (btn) { btn.textContent = 'Couldn’t save — tap to retry'; btn.disabled = false; }
-        });
-    } else {
-      showDetailsDone(chosen.value, arrivalFull, nights);
-    }
-  });
+  if (detailsForm) {
+    ['input', 'change'].forEach(function (type) {
+      detailsForm.addEventListener(type, function (event) {
+        scheduleEditSave('details', event.type === 'input' ? 700 : 0);
+      });
+    });
+    detailsForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fields = detailsPayload(true);
+      if (!fields) return;
+      clearTimeout(editSaveTimer);
+      setFormBusy(detailsForm, true);
+      if (detailsBtn) { detailsBtn.textContent = 'Saving\u2026'; detailsBtn.disabled = true; }
+      saveResponse(fields, '#details-note').then(function () {
+        showDetailsDone(fields.accommodation, responseData.arrival, fields.nights);
+        scrollToSection(detailsSection);
+      }).catch(function () {
+        saveNote('#details-note', 'Couldn\u2019t save your details. Please tap Complete RSVP to retry.');
+      }).finally(function () {
+        setFormBusy(detailsForm, false);
+        if (detailsBtn) { detailsBtn.textContent = DETAILS_LABEL; detailsBtn.disabled = false; }
+      });
+    });
+  }
 
   /* count this open (per personalized link) — fire and forget. The whole link
      goes along: seats and Holy Matrimony live only in the link, and a link
@@ -1015,60 +1166,69 @@
     } catch (e) {}
   }
 
-  /* returning guest: restore their state from the sheet */
+  /* Returning guests see the information and All Set pages; the deadline
+     form is only revealed again by Edit response. Cached answers prevent a
+     completed form flashing while Apps Script returns the current answer. */
+  function restoreResponse(d) {
+    if (!d || !d.found || touched || detailsTouched) return;
+    responseData = d;
+    savedNames = Array.isArray(d.guests) ? d.guests : String(d.guests || '').split('\n').filter(String);
+    savedDiets = Array.isArray(d.diets) ? d.diets : [];
+    savedWelcomeDinner = Array.isArray(d.welcomeDinner) ? d.welcomeDinner : [];
+    var yes = String(d.attending).toLowerCase() === 'yes';
+    var radio = form && $('input[name=attendance][value="' + (yes ? 'yes' : 'no') + '"]', form);
+    if (radio) radio.checked = true;
+    if (guestsInput && d.pax) guestsInput.value = Math.min(d.pax, Number(guestsInput.max) || 20);
+    if ($('#rsvp-wishes')) $('#rsvp-wishes').value = d.wishes || '';
+    syncAttendance();
+    buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1, true);
+    var nights = Number(d.nights) || 0;
+    var accom = d.accommodation === 'upgrade' ||
+      (d.accommodation === 'provided' && nights > HOSTED_NIGHTS) ? 'custom' : d.accommodation;
+    if (detailsForm) $$('input[name=accommodation]', detailsForm).forEach(function (el) {
+      el.checked = el.value === accom;
+    });
+    syncNightsRow();
+    if (accom === 'provided' && nights && nightsSel) nightsSel.value = String(nights);
+    updateNightsNote();
+    var arrival = /^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):\d{2})?/.exec(String(d.arrival || ''));
+    setArrivalDate(arrival ? arrival[1] : '', false);
+    var hour = $('#details-arrival-hour');
+    if (hour) hour.value = arrival && arrival[2] !== undefined ? String(Number(arrival[2])) : '';
+    if (!yes || d.detailsDone) showDetailsDone(accom, d.arrival, d.nights);
+    else {
+      if (rsvpSection) rsvpSection.hidden = false;
+      unlockInfo(false);
+      unlockDetails(false);
+    }
+    if (cacheKey) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(d)); } catch (err) {}
+    }
+  }
+  var cachedResponse;
+  if (cacheKey) {
+    try { cachedResponse = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (err) {}
+    restoreResponse(cachedResponse);
+  }
   if (API_URL && guestKey) {
+    if (!cachedResponse && rsvpSection) rsvpSection.hidden = true;
     fetch(API_URL + '?action=status&key=' + encodeURIComponent(guestKey))
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (!d || !d.found) return;
-        savedNames = Array.isArray(d.guests) ? d.guests
-          : String(d.guests || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
-        savedDiets = Array.isArray(d.diets) ? d.diets : [];
-        savedWelcomeDinner = Array.isArray(d.welcomeDinner) ? d.welcomeDinner : [];
-        if (step2 && !step2.hidden && !guestFieldsEdited) {
-          buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1, true);
+        if (!d || d.ok === false) throw new Error('status_failed');
+        if (d.found) restoreResponse(d);
+        else if (!touched && !detailsTouched) {
+          responseData = null;
+          if (cacheKey) { try { localStorage.removeItem(cacheKey); } catch (err) {} }
+          if (rsvpSection) rsvpSection.hidden = false;
+          if (infoSection) infoSection.hidden = true;
+          if (detailsSection) detailsSection.hidden = true;
+          var navRsvp = $('#nav-menu a[data-rsvp-link]');
+          if (navRsvp) navRsvp.setAttribute('href', '#rsvp');
         }
-        var isYes = String(d.attending).toLowerCase() === 'yes';
-        /* A guest who started changing their answer before this reply landed
-           keeps what they typed; the rest — unlocked pages, hotel choice — is
-           restored either way. */
-        if (!touched) {
-          if (d.pax && guestsInput) {
-            var cap = parseInt(guestsInput.max, 10) || 99;
-            guestsInput.value = Math.min(d.pax, cap);
-          }
-          var radio = form && form.querySelector('input[name=attendance][value="' + (isYes ? 'yes' : 'no') + '"]');
-          if (radio) radio.checked = true;
-          syncAttendance();
-          if (d.wishes && $('#rsvp-wishes')) $('#rsvp-wishes').value = d.wishes;
-        }
-        if (isYes) {
-          unlockInfo(false);
-          unlockDetails(false);
-          if (!detailsTouched) {
-            var oldNights = parseInt(d.nights, 10) || 0;
-            var restoredAccommodation = (d.accommodation === 'upgrade' ||
-              (d.accommodation === 'provided' && oldNights > HOSTED_NIGHTS)) ? 'custom' : d.accommodation;
-            if (restoredAccommodation && detailsForm) {
-              var acc = detailsForm.querySelector('input[name=accommodation][value="' + restoredAccommodation + '"]');
-              if (acc) acc.checked = true;
-            }
-            syncNightsRow();
-            if (restoredAccommodation === 'provided' && oldNights && nightsSel) nightsSel.value = String(oldNights);
-            updateNightsNote();
-            if (d.arrival && $('#details-arrival')) {
-              var am = /^(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):\d{2})?/.exec(String(d.arrival));
-              if (am) {
-                setArrivalDate(am[1], false);
-                var hs = $('#details-arrival-hour');
-                if (hs && am[2] !== undefined) hs.value = String(parseInt(am[2], 10));
-              }
-            }
-          }
-          if (d.detailsDone && !touched && !detailsTouched) showDetailsDone(d.accommodation, d.arrival, d.nights);
-        }
-      })
-      .catch(function () {});
+      }).catch(function () {
+        if (!cachedResponse && rsvpSection) rsvpSection.hidden = false;
+      });
   }
 
   /* ── gallery: the engagement's two drifting strips + lightbox ── */

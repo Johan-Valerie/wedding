@@ -13,6 +13,11 @@
  *       assets/js/main.js as API_URL.)
  *   Do 2 and 3 back to back. Saving alone does NOT update the live web app.
  *
+ *   This version supports saving edits before final RSVP confirmation,
+ *   including clearing an old wish and saving one guest's welcome-dinner
+ *   choice while another is still unanswered. Final confirmation still
+ *   requires every attending guest's dinner choice.
+ *
  * THE FIVE TABS
  *   Invitation — one row per invitation (what used to be "Guests"). Column A
  *                is the invitation number: the row's position, by formula.
@@ -698,7 +703,8 @@ function handleRsvp_(p) {
   if (!dietSchemaReady_() || !welcomeDinnerSchemaReady_()) return { ok: false, error: 'setup_required' };
 
   var a = answerFrom_(p, key, false);
-  if (a.welcomeDinner !== null && a.welcomeDinner.some(function (v) { return !v; })) {
+  if (String(p.partial) !== 'true' && a.welcomeDinner !== null &&
+      a.welcomeDinner.some(function (v) { return !v; })) {
     return { ok: false, error: 'welcome_dinner_required' };
   }
   /* One read of the Invitation tab gives every name each invitation answers
@@ -792,7 +798,8 @@ function answerFrom_(p, key, forceYes) {
     diets: diets,
     welcomeDinner: welcomeDinner,
     pax: yes ? Math.max(1, Math.min(20, parseInt(p.pax, 10) || guests.length || 1)) : 0,
-    wishes: clean_(p.wishes, 500)
+    wishes: clean_(p.wishes, 500),
+    replaceWishes: String(p.replaceWishes) === 'true'
   };
 }
 
@@ -847,8 +854,9 @@ function welcomeDinnerFrom_(raw, count) {
  * Writes an answer into the invitation's RSVP row — one read and one write
  * for an existing row, an append for a new one. Details (hotel, nights,
  * arrival) are carried through untouched. An edited wish goes back to
- * unapproved, so new text never reaches the wall unreviewed; an empty wishes
- * box keeps the earlier wish. Guest names are stored one per line, so a name
+ * unapproved, so new text never reaches the wall unreviewed. New pages can
+ * explicitly clear a wish; an empty box from an older page keeps it.
+ * Guest names are stored one per line, so a name
  * with a comma in it ("John Doe, Jr.") comes back whole. Diets use matching
  * lines, as do welcome-dinner choices; absent fields keep earlier choices. The key becomes the
  * name just used, for a row first answered under an older name.
@@ -862,7 +870,7 @@ function writeAnswer_(sheet, row, a) {
     v[COL.NAME - 1] = a.name;
     v[COL.ATTENDING - 1] = a.yes ? 'Yes' : 'No';
     v[COL.PAX - 1] = a.pax;
-    if (a.wishes && a.wishes !== String(v[COL.WISHES - 1])) {
+    if ((a.wishes || a.replaceWishes) && a.wishes !== String(v[COL.WISHES - 1])) {
       v[COL.WISHES - 1] = a.wishes;
       v[COL.APPROVED - 1] = false;
     }
@@ -1070,7 +1078,8 @@ function doGet(e) {
     if (p.action === 'status') return json_(getStatus_(p.key));
     if (p.action === 'features') return json_({ ok: true, dietaryChoices: dietSchemaReady_(),
                                                customArrangements: dietSchemaReady_(),
-                                               welcomeDinnerRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_() });
+                                               welcomeDinnerRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_(),
+                                               partialRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_() });
     return json_({ ok: true, service: 'jv-rsvp' });
   } catch (err) {
     return json_({ ok: false, error: String(err).slice(0, 140) });

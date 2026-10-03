@@ -737,13 +737,20 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; }
 #rsvp .micro.center{ margin-top:12px; }
-/* a large party's name list can outgrow a short screen — scroll inside the page */
+/* The first RSVP screen may scroll when the keyboard is open. Guest details
+   show one guest at a time, keeping every field and both buttons in view. */
 #rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
-#rsvp .content.on-step2{ padding-bottom:80px; }   /* room for the fixed music button */
-#rsvp-guest-names .guest-entry:first-child > .field-label:first-child{ margin-top:4px; }
-#rsvp-guest-names .guest-entry + .guest-entry{
-  border-top:1px solid var(--hairline-light); margin-top:16px; padding-top:12px;
+#rsvp .content.on-step2{
+  max-height:none; overflow:visible; padding:24px 26px 70px;
 }
+#rsvp .on-step2 .eyebrow{ margin-bottom:8px; }
+#rsvp .on-step2 h2{ margin-bottom:12px; }
+#rsvp .on-step2 .rsvp-instruction{ font-size:12px; line-height:1.5; margin-bottom:8px; }
+.guest-progress{ font-size:10px; letter-spacing:1px; color:var(--cream); margin:12px 0 8px; }
+#rsvp .on-step2 input[type=text], #rsvp .on-step2 select{ padding:10px 12px; }
+#rsvp .on-step2 .btn{ padding:10px 16px; margin-top:14px; }
+#rsvp .on-step2 #rsvp-back{ margin-top:8px; }
+#rsvp-guest-names .guest-entry > .field-label:first-child{ margin-top:4px; }
 #rsvp-guest-names .diet-label, #rsvp-guest-names .welcome-label{ margin-top:9px; }
 #rsvp-back{ width:100%; margin-top:10px; font-family:var(--ui); }
 
@@ -1062,6 +1069,12 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* SE-class screens in Safari (~550px tall): place the longer invitation
    below the faces and keep the schedule clear of the floating controls. */
 @media (max-height:600px){
+  #rsvp .content.on-step2{ padding:16px 22px 56px; }
+  #rsvp .on-step2 .eyebrow{ display:none; }
+  #rsvp .on-step2 h2{ margin-bottom:8px; }
+  #rsvp .on-step2 .rsvp-instruction{ font-size:11.5px; margin-bottom:6px; }
+  #rsvp .on-step2 .btn{ margin-top:12px; }
+  #rsvp .on-step2 .micro.center{ margin-top:8px; }
   #info .content{ padding:12px 18px 52px; }
   #info .eyebrow{ display:none; }
   #info .info-section{ margin-top:8px; }

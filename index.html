@@ -30,7 +30,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261004-layout">
+<link rel="stylesheet" href="assets/css/style.css?v=20261004-rsvp-edit">
 </head>
 <body>
 
@@ -325,6 +325,7 @@
         <div id="rsvp-step2" hidden>
           <p class="note center rsvp-instruction">Please enter the full name of each attending guest.</p>
           <p class="note center rsvp-instruction" id="rsvp-welcome-note" hidden>Will each guest join our welcome dinner on Friday, 8 January 2027?</p>
+          <p class="guest-progress center" id="rsvp-guest-progress" aria-live="polite"></p>
           <div id="rsvp-guest-names"></div>
           <button type="submit" class="btn solid" id="rsvp-confirm">Continue</button>
           <button type="button" class="btn ghost" id="rsvp-back">Back</button>
@@ -367,7 +368,7 @@
       </div>
 
       <button type="button" class="btn solid" id="info-continue">Continue to Accommodation Details</button>
-      <p class="note center">One more short step to complete your RSVP</p>
+      <p class="note center" id="info-progress-note">One more short step to complete your RSVP</p>
     </div>
   </section>
 
@@ -447,11 +448,11 @@
       <div id="details-done" hidden>
         <p class="eyebrow">ALL SET</p>
         <h2 class="serif">Thank You!</h2>
-        <p class="serif-italic done-line">Your RSVP is complete.<br>We can&rsquo;t wait to celebrate with you.</p>
+        <p class="serif-italic done-line" id="details-done-line">Your RSVP is complete.<br>We can&rsquo;t wait to celebrate with you.</p>
         <div class="hairline"></div>
         <p class="body" id="details-summary"></p>
         <a class="btn ghost" id="details-contact" href="https://wa.me/6281216668858" target="_blank" rel="noopener" hidden>Contact us on WhatsApp</a>
-        <p class="note">To update your response, submit the form again.</p>
+        <p class="note">To update your response, choose Edit response below.</p>
         <button type="button" class="btn ghost" id="details-edit-response">EDIT RESPONSE</button>
       </div>
     </div>
@@ -519,6 +520,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261004-layout"></script>
+<script src="assets/js/main.js?v=20261004-rsvp-edit"></script>
 </body>
 </html>

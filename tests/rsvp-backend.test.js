@@ -55,6 +55,7 @@ sheets['Guest List'] = new Sheet([...Array.from(context.GLHEADERS), 'Table']);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, true);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).customArrangements, true);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).welcomeDinnerRsvp, true);
+assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).partialRsvp, true);
 const dietHeader = sheets['Guest List'].rows[0][context.GLCOL.DIET - 1];
 sheets['Guest List'].rows[0][context.GLCOL.DIET - 1] = 'Table';
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, false);
@@ -172,4 +173,28 @@ assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], '');
 assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r => r[context.GLCOL.GUEST - 1]).filter(Boolean), [],
   'declining the wedding removes this invitation from the guest and dinner counts');
 
-console.log('RSVP backend repeat edits, diets, welcome dinner, accommodation and migration: OK');
+// Editing saves each screen before final confirmation, including an unanswered
+// second dinner choice. The full RSVP still requires every dinner answer.
+assert.equal(context.handleRsvp_({
+  key: 'C & D', name: 'C & D', attending: 'yes', pax: 2, partial: true,
+  guests: ['C', 'D'], diets: ['none', 'halal'], welcomeDinner: ['yes', ''],
+  wishes: 'Our first wish'
+}).ok, true);
+assert.deepEqual(Array.from(context.getStatus_('C & D').welcomeDinner), ['yes', '']);
+assert.equal(context.handleRsvp_({
+  key: 'C & D', attending: 'yes', guests: ['C', 'D'], welcomeDinner: ['yes', '']
+}).error, 'welcome_dinner_required');
+assert.equal(context.handleRsvp_({
+  key: 'C & D', name: 'C & D', attending: 'yes', pax: 2, wishes: '', replaceWishes: true
+}).ok, true);
+assert.equal(context.getStatus_('C & D').wishes, '', 'an edit can clear an old wish');
+assert.deepEqual(Array.from(context.getStatus_('C & D').guests), ['C', 'D'],
+  'saving attendance or wishes alone preserves guest details');
+assert.deepEqual(Array.from(context.getStatus_('C & D').diets), ['none', 'halal']);
+assert.deepEqual(Array.from(context.getStatus_('C & D').welcomeDinner), ['yes', '']);
+context.handleRsvp_({ key: 'C & D', attending: 'yes', pax: 2, wishes: 'Keep this wish' });
+context.handleRsvp_({ key: 'C & D', attending: 'yes', pax: 2, wishes: '' });
+assert.equal(context.getStatus_('C & D').wishes, 'Keep this wish',
+  'an older page keeps its existing blank-wish behavior');
+
+console.log('RSVP backend edits, step saves, diets, dinner, accommodation and migration: OK');
