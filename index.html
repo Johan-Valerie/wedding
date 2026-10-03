@@ -29,7 +29,7 @@
 <!-- Libraries -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css">
 
-<link rel="stylesheet" href="assets/css/style.css?v=20261003-smooth-profiles">
+<link rel="stylesheet" href="assets/css/style.css?v=20261003-welcome-rsvp">
 </head>
 <body>
 
@@ -328,9 +328,10 @@
           <button type="button" class="btn solid" id="rsvp-next">CONTINUE</button>
           <button type="submit" class="btn solid" id="rsvp-send" hidden>Send Response</button>
         </div>
-        <!-- step 2: one name per guest, for the guest list and the hotel -->
+        <!-- step 2: each guest's name, diet and welcome-dinner attendance -->
         <div id="rsvp-step2" hidden>
           <p class="note center rsvp-instruction">Please enter the full name of each attending guest.</p>
+          <p class="note center rsvp-instruction" id="rsvp-welcome-note" hidden>Will each guest join our welcome dinner on Friday, 8 January 2027?</p>
           <div id="rsvp-guest-names"></div>
           <button type="submit" class="btn solid" id="rsvp-confirm">Continue</button>
           <button type="button" class="btn ghost" id="rsvp-back">Back</button>
@@ -525,6 +526,6 @@
 </audio>
 
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
-<script src="assets/js/main.js?v=20261003-dress2"></script>
+<script src="assets/js/main.js?v=20261003-welcome-rsvp"></script>
 </body>
 </html>

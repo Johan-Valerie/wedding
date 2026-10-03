@@ -54,29 +54,41 @@ sheets.RSVP = new Sheet(Array.from(context.HEADERS));
 sheets['Guest List'] = new Sheet([...Array.from(context.GLHEADERS), 'Table']);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, true);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).customArrangements, true);
+assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).welcomeDinnerRsvp, true);
 const dietHeader = sheets['Guest List'].rows[0][context.GLCOL.DIET - 1];
 sheets['Guest List'].rows[0][context.GLCOL.DIET - 1] = 'Table';
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, false);
 assert.equal(context.handleRsvp_({ key: 'A & B', attending: 'yes' }).error, 'setup_required');
 sheets['Guest List'].rows[0][context.GLCOL.DIET - 1] = dietHeader;
+const welcomeHeader = sheets['Guest List'].rows[0][context.GLCOL.WELCOME - 1];
+sheets['Guest List'].rows[0][context.GLCOL.WELCOME - 1] = 'Table';
+assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).welcomeDinnerRsvp, false);
+assert.equal(context.handleRsvp_({ key: 'A & B', attending: 'yes' }).error, 'setup_required',
+  'the new schema must not write over a pre-existing custom column');
+sheets['Guest List'].rows[0][context.GLCOL.WELCOME - 1] = welcomeHeader;
 
 const first = context.handleRsvp_({
   key: 'A & B', name: 'A & B', attending: 'yes', pax: 2,
-  guests: JSON.stringify(['A', 'B']), diets: JSON.stringify(['halal', 'vegetarian']), wishes: ''
+  guests: JSON.stringify(['A', 'B']), diets: JSON.stringify(['halal', 'vegetarian']),
+  welcomeDinner: JSON.stringify(['yes', 'no']), wishes: ''
 });
 assert.equal(first.ok, true);
 assert.equal(sheets.RSVP.rows[1][context.COL.DIETS - 1], 'Halal\nVegetarian');
 assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r => r[context.GLCOL.DIET - 1]), ['Halal', 'Vegetarian']);
+assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], 'Yes\nNo');
+assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r => r[context.GLCOL.WELCOME - 1]), ['Yes', 'No']);
 
 assert.equal(context.handleDetails_({
   key: 'A & B', accommodation: 'provided', nights: 2, arrival: ''
 }).ok, true);
-sheets['Guest List'].rows[1][6] = 'Table 1';
-sheets['Guest List'].rows[2][6] = 'Table 2';
+const tableIndex = context.GLHEADERS.length;
+sheets['Guest List'].rows[1][tableIndex] = 'Table 1';
+sheets['Guest List'].rows[2][tableIndex] = 'Table 2';
 
 assert.equal(context.handleRsvp_({
   key: 'A & B', name: 'A & B', attending: 'yes', pax: 2,
-  guests: JSON.stringify(['B', 'A']), diets: JSON.stringify(['none', 'vegetarian']), wishes: ''
+  guests: JSON.stringify(['B', 'A']), diets: JSON.stringify(['none', 'vegetarian']),
+  welcomeDinner: JSON.stringify(['yes', 'no']), wishes: ''
 }).ok, true);
 assert.equal(context.handleDetails_({
   key: 'A & B', accommodation: 'self', arrival: ''
@@ -84,13 +96,15 @@ assert.equal(context.handleDetails_({
 assert.equal(sheets.RSVP.rows.length, 2, 'a repeat RSVP updates the same row');
 assert.equal(sheets.RSVP.rows[1][context.COL.ACCOM - 1], 'Self-arranged');
 assert.equal(sheets.RSVP.rows[1][context.COL.DIETS - 1], 'None\nVegetarian');
+assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], 'Yes\nNo');
 assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r =>
-  [r[context.GLCOL.GUEST - 1], r[context.GLCOL.DIET - 1], r[6]]),
-  [['B', 'None', 'Table 2'], ['A', 'Vegetarian', 'Table 1']]);
+  [r[context.GLCOL.GUEST - 1], r[context.GLCOL.DIET - 1], r[context.GLCOL.WELCOME - 1], r[tableIndex]]),
+  [['B', 'None', 'Yes', 'Table 2'], ['A', 'Vegetarian', 'No', 'Table 1']]);
 
 const status = context.getStatus_('A & B');
 assert.equal(status.accommodation, 'self');
 assert.deepEqual(Array.from(status.diets), ['none', 'vegetarian']);
+assert.deepEqual(Array.from(status.welcomeDinner), ['yes', 'no']);
 
 context.handleRsvp_({
   key: 'A & B', name: 'A & B', attending: 'yes', pax: 2,
@@ -100,12 +114,33 @@ assert.equal(sheets.RSVP.rows[1][context.COL.DIETS - 1], 'None\nVegetarian',
   'an older page does not erase dietary choices');
 assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r => r[context.GLCOL.DIET - 1]),
   ['None', 'Vegetarian']);
+assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], 'Yes\nNo',
+  'an older page does not erase welcome-dinner choices');
 context.handleRsvp_({
   key: 'A & B', name: 'A & B', attending: 'yes', pax: 2,
   guests: JSON.stringify(['A', 'B']), wishes: ''
 });
 assert.equal(sheets.RSVP.rows[1][context.COL.DIETS - 1], 'Vegetarian\nNone',
   'an older page keeps diets with people after reordering');
+assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], 'No\nYes',
+  'an older page keeps welcome-dinner attendance with each person after reordering');
+
+const beforeInvalid = sheets.RSVP.rows[1].slice();
+assert.equal(context.handleRsvp_({
+  key: 'A & B', attending: 'yes', guests: ['A', 'B'], welcomeDinner: ['yes', '']
+}).error, 'welcome_dinner_required');
+assert.deepEqual(sheets.RSVP.rows[1], beforeInvalid,
+  'an incomplete welcome-dinner answer is refused before any changes are saved');
+
+// A returning guest's first post might be lost; the final form still saves their edited choices.
+assert.equal(context.handleDetails_({
+  key: 'A & B', name: 'A & B', accommodation: 'provided', nights: 2,
+  guests: ['A', 'B'], diets: ['halal', 'none'], welcomeDinner: ['yes', 'no'], pax: 2
+}).ok, true);
+assert.deepEqual(Array.from(context.getStatus_('A & B').welcomeDinner), ['yes', 'no']);
+assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r =>
+  [r[context.GLCOL.GUEST - 1], r[context.GLCOL.WELCOME - 1], r[tableIndex]]),
+  [['A', 'Yes', 'Table 1'], ['B', 'No', 'Table 2']]);
 
 assert.equal(context.handleDetails_({
   key: 'A & B', accommodation: 'provided', nights: 3
@@ -122,5 +157,19 @@ const migrated = context.readTable_(oldList, context.GLHEADERS);
 assert.equal(migrated.rows[0][context.GLCOL.DIET - 1], 'Halal');
 assert.equal(migrated.extraHeaders[0], 'Table');
 assert.equal(migrated.rows[0][context.GLHEADERS.length], 'Table 1');
+assert.equal(migrated.rows[0][context.GLCOL.WELCOME - 1], '',
+  'existing guests have unanswered dinner attendance, rather than an invented decline');
 
-console.log('RSVP backend repeat edits, diets, accommodation and migration: OK');
+const oldRsvp = new Sheet(Array.from(context.HEADERS).slice(0, -1).concat('Notes'));
+oldRsvp.appendRow(sheets.RSVP.rows[1].slice(0, -1).concat('Keep this note'));
+const migratedRsvp = context.readTable_(oldRsvp, context.HEADERS);
+assert.equal(migratedRsvp.rows[0][context.COL.WELCOME - 1], '');
+assert.equal(migratedRsvp.extraHeaders[0], 'Notes');
+assert.equal(migratedRsvp.rows[0][context.HEADERS.length], 'Keep this note');
+
+assert.equal(context.handleRsvp_({ key: 'A & B', attending: 'no', guests: [] }).ok, true);
+assert.equal(sheets.RSVP.rows[1][context.COL.WELCOME - 1], '');
+assert.deepEqual(sheets['Guest List'].rows.slice(1).map(r => r[context.GLCOL.GUEST - 1]).filter(Boolean), [],
+  'declining the wedding removes this invitation from the guest and dinner counts');
+
+console.log('RSVP backend repeat edits, diets, welcome dinner, accommodation and migration: OK');
