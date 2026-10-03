@@ -3,8 +3,8 @@
    Art style study: monochrome editorial, hairlines, no shadows,
    frosted glass. All serif: Playfair Display for running text,
    labels and headings, Cormorant Garamond for the soft italic
-   lines, Pinyon Script for every name in script, in a light
-   cut for the couple's names on the cover and the first page (the
+   lines, Pinyon Script for every name in script, with its original
+   outlines for the couple's names on the cover and the first page (the
    intro, cover, first page and groom/bride pages are the engagement
    invitation's own design)
    ═══════════════════════════════════════════════════════════════ */
@@ -20,12 +20,13 @@
   font-style:normal;
   font-display:swap;
 }
-/* Pinyon Script Light — the couple's names on the cover and the first page.
+/* Custom Pinyon Script Light — retained for script text at weight 300.
    Pinyon only ships in Regular, so this lighter cut is made from it (SIL
    Open Font License, which allows modified versions): the hairlines are
    untouched and the thicker strokes are shaved, the thickest by 16 of 2048
    units a side (about 20% lighter overall). Letters A-Z, a-z only. Asking
-   for weight 300 gets it; the Regular above stays the fallback. */
+   for weight 300 gets it. The cover and hero use the original Regular
+   above so their large lettering keeps smooth curves and intact joins. */
 @font-face{
   font-family:"Pinyon Script";
   src:url("../fonts/PinyonScript-Light.woff2") format("woff2");
@@ -299,7 +300,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 /* the slight diagonal, via transforms so the flex centring stays true */
 .names-stagger .name-lg{
   position:relative; z-index:1; margin:0;
-  font-family:var(--script); font-weight:300;
+  font-family:var(--script); font-weight:400;
   font-size:1em; line-height:1;
 }
 .names-stagger .name-lg:first-of-type{ transform:translateX(-13px); }
@@ -462,13 +463,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
   background:linear-gradient(rgba(0,0,0,.30) 0%, rgba(0,0,0,.42) 50%, rgba(0,0,0,.62) 100%);
 }
 .hero-inner{ position:relative; z-index:2; max-width:520px; }
-/* Pinyon Light, as on the cover: the block carries the size and ends at the ink */
+/* Original Pinyon, as on the cover: the block carries the size and ends at the ink */
 .names-centred{
   position:relative; display:flex; flex-direction:column; align-items:center;
   font-size:clamp(50px,16.6vw,95px); margin:.05em 0 -.24em;
 }
 .names-centred .name-lg{
-  font-family:var(--script); font-weight:300;
+  font-family:var(--script); font-weight:400;
   font-size:1em; line-height:1; margin:0;
 }
 .names-centred .name-lg:last-of-type{ margin-top:-.13em; }
