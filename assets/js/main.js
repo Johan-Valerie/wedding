@@ -694,6 +694,7 @@
   var SEND_LABEL = sendBtn ? sendBtn.textContent : '';
   var CONFIRM_LABEL = confirmBtn ? confirmBtn.textContent : '';
   var guestPage = 0;
+  var GUESTS_PER_PAGE = 2;
   var editingResponse = false;
   var responseData = null;
   var editSaveTimer;
@@ -894,10 +895,14 @@
   }
   function showGuestPage(index) {
     var entries = $$('.guest-entry', nameBox);
-    guestPage = Math.max(0, Math.min(index, entries.length - 1));
-    entries.forEach(function (entry, i) { entry.hidden = i !== guestPage; });
+    var lastPage = Math.floor(Math.max(0, entries.length - 1) / GUESTS_PER_PAGE) * GUESTS_PER_PAGE;
+    guestPage = Math.max(0, Math.min(Math.floor(index / GUESTS_PER_PAGE) * GUESTS_PER_PAGE, lastPage));
+    var end = Math.min(guestPage + GUESTS_PER_PAGE, entries.length);
+    entries.forEach(function (entry, i) { entry.hidden = i < guestPage || i >= end; });
     var progress = $('#rsvp-guest-progress');
-    if (progress) progress.textContent = 'Guest ' + (guestPage + 1) + ' of ' + entries.length;
+    if (progress) progress.textContent = end - guestPage > 1
+      ? 'Guests ' + (guestPage + 1) + '\u2013' + end + ' of ' + entries.length
+      : 'Guest ' + end + ' of ' + entries.length;
     if (confirmBtn) { confirmBtn.textContent = CONFIRM_LABEL; confirmBtn.disabled = false; }
   }
   /* Rebuilt whenever the count changes. Fields already on screen keep their
@@ -925,7 +930,10 @@
       input.value = typed[i] !== undefined ? typed[i] : (savedNames[i] || invitationNames[i] || '');
       entry.appendChild(label);
       entry.appendChild(input);
+      var choices = document.createElement('div');
+      choices.className = 'guest-choices';
       if (dietaryReady) {
+        var dietField = document.createElement('div');
         var dietLabel = document.createElement('label');
         dietLabel.className = 'field-label diet-label';
         dietLabel.htmlFor = 'rsvp-diet-' + i;
@@ -940,10 +948,12 @@
           diet.appendChild(option);
         });
         diet.value = typedDiets[i] || savedDiets[i] || 'none';
-        entry.appendChild(dietLabel);
-        entry.appendChild(diet);
+        dietField.appendChild(dietLabel);
+        dietField.appendChild(diet);
+        choices.appendChild(dietField);
       }
       if (welcomeDinnerReady) {
+        var welcomeField = document.createElement('div');
         var welcomeLabel = document.createElement('label');
         welcomeLabel.className = 'field-label welcome-label';
         welcomeLabel.htmlFor = 'rsvp-welcome-dinner-' + i;
@@ -960,9 +970,11 @@
           welcomeDinner.appendChild(option);
         });
         welcomeDinner.value = typedWelcomeDinner[i] !== undefined ? typedWelcomeDinner[i] : (savedWelcomeDinner[i] || '');
-        entry.appendChild(welcomeLabel);
-        entry.appendChild(welcomeDinner);
+        welcomeField.appendChild(welcomeLabel);
+        welcomeField.appendChild(welcomeDinner);
+        choices.appendChild(welcomeField);
       }
+      entry.appendChild(choices);
       nameBox.appendChild(entry);
     }
     showGuestPage(guestPage);
@@ -1028,7 +1040,7 @@
       var fields = guestPayload(false);
       if (fields) saveResponse(fields, '#rsvp-note').catch(function () {});
     }
-    if (guestPage > 0) showGuestPage(guestPage - 1);
+    if (guestPage > 0) showGuestPage(guestPage - GUESTS_PER_PAGE);
     else showStep(1);
   });
   var detailsEditBtn = $('#details-edit-response');
@@ -1061,30 +1073,33 @@
     var inputs = $$('.rsvp-guest', nameBox);
     var welcomes = $$('.rsvp-welcome-dinner', nameBox);
     if (yes) {
-      if (!inputs[guestPage] || !inputs[guestPage].value.trim()) {
-        rsvpNote('Please enter this guest\u2019s full name.');
-        if (inputs[guestPage]) inputs[guestPage].focus();
-        return;
+      var pageEnd = Math.min(guestPage + GUESTS_PER_PAGE, inputs.length);
+      for (var i = guestPage; i < pageEnd; i++) {
+        if (!inputs[i].value.trim()) {
+          rsvpNote('Please enter Guest ' + (i + 1) + '\u2019s full name.');
+          inputs[i].focus();
+          return;
+        }
+        if (welcomeDinnerReady && welcomes[i] && !welcomes[i].value) {
+          rsvpNote('Please choose whether Guest ' + (i + 1) + ' will join the welcome dinner.');
+          welcomes[i].focus();
+          return;
+        }
       }
-      if (welcomeDinnerReady && welcomes[guestPage] && !welcomes[guestPage].value) {
-        rsvpNote('Please choose whether this guest will join the welcome dinner.');
-        welcomes[guestPage].focus();
-        return;
-      }
-      if (guestPage < inputs.length - 1) {
+      if (pageEnd < inputs.length) {
         var partial = editingResponse && guestPayload(false);
         if (partial) {
           setFormBusy(form, true);
           confirmBtn.disabled = true;
           confirmBtn.textContent = 'Saving\u2026';
           saveResponse(partial, '#rsvp-note').then(function () {
-            showGuestPage(guestPage + 1);
+            showGuestPage(guestPage + GUESTS_PER_PAGE);
           }).catch(function () {}).finally(function () {
             setFormBusy(form, false);
             confirmBtn.disabled = false; confirmBtn.textContent = CONFIRM_LABEL;
           });
         } else {
-          showGuestPage(guestPage + 1);
+          showGuestPage(guestPage + GUESTS_PER_PAGE);
           rsvpNote(editingResponse ? 'Please complete the guest details to save your changes.' : '');
         }
         return;

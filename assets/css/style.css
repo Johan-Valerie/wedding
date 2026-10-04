@@ -738,20 +738,28 @@ h3.serif{ font-size:22px; line-height:1.2; }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; }
 #rsvp .micro.center{ margin-top:12px; }
 /* The first RSVP screen may scroll when the keyboard is open. Guest details
-   show one guest at a time, keeping every field and both buttons in view. */
+   show up to two guests, with dietary and dinner choices side by side. */
 #rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
 #rsvp .content.on-step2{
-  max-height:none; overflow:visible; padding:24px 26px 70px;
+  max-height:none; overflow:visible; padding:18px 26px 64px;
 }
 #rsvp .on-step2 .eyebrow{ margin-bottom:8px; }
-#rsvp .on-step2 h2{ margin-bottom:12px; }
-#rsvp .on-step2 .rsvp-instruction{ font-size:12px; line-height:1.5; margin-bottom:8px; }
-.guest-progress{ font-size:10px; letter-spacing:1px; color:var(--cream); margin:12px 0 8px; }
-#rsvp .on-step2 input[type=text], #rsvp .on-step2 select{ padding:10px 12px; }
-#rsvp .on-step2 .btn{ padding:10px 16px; margin-top:14px; }
+#rsvp .on-step2 h2{ margin-bottom:8px; }
+#rsvp .on-step2 .rsvp-instruction{ font-size:12px; line-height:1.5; margin-bottom:6px; }
+.guest-progress{ font-size:10px; letter-spacing:1px; color:var(--cream); margin:8px 0; }
+#rsvp .on-step2 input[type=text]{ padding:9px 12px; }
+#rsvp .on-step2 select{ padding:9px 7px; font-size:12px; }
+#rsvp .on-step2 .btn{ padding:10px 16px; margin-top:12px; }
 #rsvp .on-step2 #rsvp-back{ margin-top:8px; }
 #rsvp-guest-names .guest-entry > .field-label:first-child{ margin-top:4px; }
-#rsvp-guest-names .diet-label, #rsvp-guest-names .welcome-label{ margin-top:9px; }
+.guest-choices{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.guest-choices > div:only-child{ grid-column:1 / -1; }
+#rsvp-guest-names .diet-label, #rsvp-guest-names .welcome-label{
+  margin:8px 0 4px; font-size:9px; letter-spacing:1px;
+}
+#rsvp-guest-names .guest-entry + .guest-entry{
+  border-top:1px solid var(--hairline-light); margin-top:12px; padding-top:8px;
+}
 #rsvp-back{ width:100%; margin-top:10px; font-family:var(--ui); }
 
 /* honeypot — invisible to humans, tempting to bots */
