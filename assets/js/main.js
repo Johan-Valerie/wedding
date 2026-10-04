@@ -111,7 +111,117 @@
   var shell = !!scroller && getComputedStyle(scroller).position === 'fixed';
   var scrollRoot = shell ? scroller : (document.scrollingElement || document.documentElement);
   var scrollSource = shell ? scroller : window;
-  function setSnap(on) { scrollRoot.style.scrollSnapType = on ? 'y mandatory' : 'none'; }
+  var snapRequested = false;
+  var formViewport = null;
+  var formBlurTimer, formViewportTick;
+  function applySnap() {
+    scrollRoot.style.scrollSnapType = snapRequested && !formViewport ? 'y mandatory' : 'none';
+  }
+  function setSnap(on) { snapRequested = on; applySnap(); }
+
+  /* Mobile keyboards can resize either the layout viewport (Android) or just
+     the visual viewport (Safari). Keep the deck's page heights stable while
+     editing, and move only enough to show the focused field above the keys.
+     Mandatory page snapping must never fight the browser's focus scrolling. */
+  function isFormField(el) {
+    return el && el.matches && el.matches('input, textarea, select') &&
+      !el.disabled && !el.readOnly && el.type !== 'hidden' && el.type !== 'radio' &&
+      el.type !== 'checkbox' && el.getAttribute('aria-hidden') !== 'true' &&
+      el.closest('#rsvp-form, #details-form');
+  }
+  function keepFieldVisible() {
+    var field = document.activeElement;
+    if (!formViewport || !isFormField(field)) return;
+    var box = scrollRoot.getBoundingClientRect();
+    var rect = field.getBoundingClientRect();
+    var top = box.top + Math.min(72, box.height / 4);
+    var bottom = box.bottom - 18;
+    var delta = rect.top < top || rect.bottom - rect.top > bottom - top
+      ? rect.top - top : rect.bottom > bottom ? rect.bottom - bottom : 0;
+    if (!delta) return;
+    var section = field.closest('.child');
+    var start = section.getBoundingClientRect().top - box.top + scrollRoot.scrollTop;
+    var end = Math.max(start, start + section.offsetHeight - scrollRoot.clientHeight);
+    scrollRoot.scrollTo({ top: Math.max(start, Math.min(end, scrollRoot.scrollTop + delta)), behavior: 'auto' });
+  }
+  function syncFormViewport() {
+    formViewportTick = null;
+    if (!formViewport || !shell) return;
+    var viewport = window.visualViewport;
+    var height = viewport ? viewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--form-height', height + 'px');
+    document.documentElement.style.setProperty('--form-top', (viewport ? viewport.offsetTop : 0) + 'px');
+    keepFieldVisible();
+  }
+  function queueFormViewport() {
+    if (formViewport && !formViewportTick) formViewportTick = requestAnimationFrame(syncFormViewport);
+  }
+  function beginFormEditing(field) {
+    if (!shell || !isFormField(field)) return;
+    clearTimeout(formBlurTimer);
+    if (!formViewport) {
+      formViewport = { section: field.closest('.child'), height: scroller.clientHeight, width: window.innerWidth };
+      document.documentElement.style.setProperty('--page-height', formViewport.height + 'px');
+      document.documentElement.classList.add('form-editing');
+      scrollRoot.scrollTo({ top: scrollRoot.scrollTop, behavior: 'auto' });
+    }
+    formViewport.section = field.closest('.child');
+    delete formViewport.destination;
+    clearInterval(navSettleWatch);
+    navSettleWatch = null;
+    setSnap(true);   // remembered, but paused until editing and keyboard dismissal finish
+    syncFormViewport();
+    queueFormViewport();
+  }
+  function finishFormEditing() {
+    if (!formViewport || isFormField(document.activeElement)) return;
+    var viewport = window.visualViewport;
+    var height = viewport ? viewport.height : window.innerHeight;
+    // Wait for the keyboard's closing animation before allowing page reflow.
+    if (window.innerWidth === formViewport.width && height < formViewport.height - 80 &&
+        Date.now() - formViewport.blurredAt < 1500) {
+      formBlurTimer = setTimeout(finishFormEditing, 100);
+      return;
+    }
+    var target = formViewport.destination || formViewport.section;
+    document.documentElement.style.removeProperty('--page-height');
+    document.documentElement.style.removeProperty('--form-height');
+    document.documentElement.style.removeProperty('--form-top');
+    document.documentElement.classList.remove('form-editing');
+    // Recalculate the destination after heights return to normal, rather than
+    // keeping a pixel offset that can now point at the last page of the deck.
+    if (target && !target.hidden) {
+      var goal = target.getBoundingClientRect().top - scrollRoot.getBoundingClientRect().top + scrollRoot.scrollTop;
+      scrollRoot.scrollTo({ top: goal, behavior: 'instant' });
+    }
+    formViewport = null;
+    applySnap();
+    queueReveals();
+  }
+  if (shell) {
+    scrollRoot.addEventListener('pointerdown', function (event) {
+      beginFormEditing(event.target);
+    }, true);
+    scrollRoot.addEventListener('focusin', function (event) {
+      beginFormEditing(event.target);
+    });
+    scrollRoot.addEventListener('focusout', function () {
+      if (!formViewport) return;
+      formViewport.blurredAt = Date.now();
+      clearTimeout(formBlurTimer);
+      formBlurTimer = setTimeout(finishFormEditing, 350);
+    });
+    window.addEventListener('resize', queueFormViewport);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', queueFormViewport);
+      window.visualViewport.addEventListener('scroll', queueFormViewport);
+    }
+  }
+  function focusFormField(field) {
+    beginFormEditing(field);
+    field.focus({ preventScroll: true });
+    queueFormViewport();
+  }
 
   /* scroll lock while cover is up */
   window.onbeforeunload = function () { scrollRoot.scrollTop = 0; };
@@ -296,31 +406,37 @@
      drags the page back. If the glide stalls short (smooth-scroll tails can),
      it is resumed. */
   var navSettleWatch;
+  function jumpToSection(target) {
+    if (!target || target.hidden) return;
+    if (formViewport) formViewport.destination = target;
+    if (isFormField(document.activeElement)) document.activeElement.blur();
+    setSnap(false);
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    clearInterval(navSettleWatch);
+    var last = -1, still = 0, t0 = Date.now();
+    navSettleWatch = setInterval(function () {
+      var y = Math.round(scrollRoot.scrollTop);
+      var goal = Math.round(target.getBoundingClientRect().top -
+        (shell ? scrollRoot.getBoundingClientRect().top : 0) + scrollRoot.scrollTop);
+      var stalled = y === last && ++still >= 3;
+      if (y !== last) { still = 0; last = y; }
+      if (Math.abs(y - goal) < 2 || Date.now() - t0 > 4000) {
+        clearInterval(navSettleWatch);
+        navSettleWatch = null;
+        scrollRoot.scrollTo({ top: goal, behavior: 'instant' });
+        setSnap(true);
+      } else if (stalled) {
+        still = 0;
+        scrollRoot.scrollTo({ top: goal, behavior: 'smooth' });
+      }
+    }, 100);
+  }
   $$('#nav-menu a').forEach(function (a) {
     a.addEventListener('click', function (e) {
       e.preventDefault();
       var target = $(a.getAttribute('href'));
       setNavOpen(false);
-      if (!target) return;
-
-      setSnap(false);
-      target.scrollIntoView({ behavior: 'smooth' });
-      clearInterval(navSettleWatch);
-      var last = -1, still = 0, t0 = Date.now();
-      navSettleWatch = setInterval(function () {
-        var y = Math.round(scrollRoot.scrollTop);
-        var goal = Math.round(target.getBoundingClientRect().top + scrollRoot.scrollTop);
-        var stalled = y === last && ++still >= 3;
-        if (y !== last) { still = 0; last = y; }
-        if (Math.abs(y - goal) < 2 || Date.now() - t0 > 4000) {
-          clearInterval(navSettleWatch);
-          scrollRoot.scrollTo(0, goal);
-          setSnap(true);
-        } else if (stalled) {
-          still = 0;
-          scrollRoot.scrollTo({ top: goal, behavior: 'smooth' });
-        }
-      }, 100);
+      jumpToSection(target);
     });
   });
 
@@ -583,10 +699,7 @@
   var HOSTED_NIGHTS = 2;
 
   function scrollToSection(el) {
-    if (!el) return;
-    setSnap(false);
-    el.scrollIntoView({ behavior: 'smooth' });
-    setTimeout(function () { setSnap(true); }, 1600);
+    jumpToSection(el);
   }
   function unlockInfo(scroll) {
     if (!infoSection) return;
@@ -700,6 +813,7 @@
   var editSaveTimer;
   var saveQueue = Promise.resolve();
   var saveVersion = 0;
+  var SAVE_TIMEOUT = 30000;
   var cacheKey = guestKey ? 'jv-wedding-response:' + guestKey : '';
 
   function saveNote(id, msg) {
@@ -750,6 +864,26 @@
   }
   /* Edits are sent in order and only marked saved after the sheet confirms
      them. A later change cannot be overtaken by an older, slower request. */
+  function postResponse(fields) {
+    var body = Object.keys(fields).map(function (k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(
+        Array.isArray(fields[k]) ? JSON.stringify(fields[k]) : fields[k]);
+    }).join('&');
+    return new Promise(function (resolve, reject) {
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = setTimeout(function () {
+        if (controller) controller.abort();
+        reject(new Error('save_timeout'));
+      }, SAVE_TIMEOUT);
+      var options = { method: 'POST', keepalive: true, body: body,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' } };
+      if (controller) options.signal = controller.signal;
+      fetch(API_URL, options).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || d.ok !== true) throw new Error(d && d.error || 'save_failed');
+        resolve();
+      }).catch(reject).finally(function () { clearTimeout(timer); });
+    });
+  }
   function saveResponse(fields, noteId) {
     clearTimeout(editSaveTimer);
     if (!partialReady && responseData && responseData.wishes && fields.wishes === '') {
@@ -760,16 +894,7 @@
     saveNote(noteId, 'Saving changes\u2026');
     var save = saveQueue.catch(function () {}).then(function () {
       if (!API_URL) return;
-      var body = Object.keys(fields).map(function (k) {
-        return encodeURIComponent(k) + '=' + encodeURIComponent(
-          Array.isArray(fields[k]) ? JSON.stringify(fields[k]) : fields[k]);
-      }).join('&');
-      return fetch(API_URL, {
-        method: 'POST', keepalive: true, body: body,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }
-      }).then(function (r) { return r.json(); }).then(function (d) {
-        if (!d || d.ok !== true) throw new Error(d && d.error || 'save_failed');
-      });
+      return postResponse(fields);
     }).then(function () {
       rememberResponse(fields);
       if (version === saveVersion) saveNote(noteId, editingResponse ? 'Changes saved.' : '');
@@ -792,7 +917,7 @@
     fields.guests = inputs.map(function (el) { return el.value.trim(); });
     var missing = fields.guests.indexOf('');
     if (missing >= 0) {
-      if (validateAll) { showGuestPage(missing); rsvpNote('Please fill in every guest name.'); inputs[missing].focus(); }
+      if (validateAll) { showGuestPage(missing); rsvpNote('Please fill in every guest name.'); focusFormField(inputs[missing]); }
       // A newly added guest may be on the next screen. Save edits to the
       // existing guests now, keeping the requested party size separately.
       if (validateAll || missing < savedNames.length || missing === 0 ||
@@ -808,7 +933,7 @@
       if (unanswered >= 0 && validateAll) {
         showGuestPage(unanswered);
         rsvpNote('Please select welcome-dinner attendance for each guest.');
-        welcomes[unanswered].focus();
+        focusFormField(welcomes[unanswered]);
         return null;
       }
       if (unanswered >= 0 && !partialReady) return null;
@@ -905,6 +1030,52 @@
       : 'Guest ' + end + ' of ' + entries.length;
     if (confirmBtn) { confirmBtn.textContent = CONFIRM_LABEL; confirmBtn.disabled = false; }
   }
+  /* Adding late-arriving choices leaves the focused name input in place. */
+  function addGuestChoices(entry, i, dietValue, welcomeValue) {
+    var choices = $('.guest-choices', entry);
+    if (dietaryReady && !$('.rsvp-diet', entry)) {
+      var dietField = document.createElement('div');
+      var dietLabel = document.createElement('label');
+      dietLabel.className = 'field-label diet-label';
+      dietLabel.htmlFor = 'rsvp-diet-' + i;
+      dietLabel.textContent = 'Dietary preference';
+      var diet = document.createElement('select');
+      diet.id = 'rsvp-diet-' + i;
+      diet.className = 'rsvp-diet';
+      [['none', 'None'], ['halal', 'Halal'], ['vegetarian', 'Vegetarian']].forEach(function (choice) {
+        var option = document.createElement('option');
+        option.value = choice[0];
+        option.textContent = choice[1];
+        diet.appendChild(option);
+      });
+      diet.value = dietValue || savedDiets[i] || 'none';
+      dietField.appendChild(dietLabel);
+      dietField.appendChild(diet);
+      choices.appendChild(dietField);
+    }
+    if (welcomeDinnerReady && !$('.rsvp-welcome-dinner', entry)) {
+      var welcomeField = document.createElement('div');
+      var welcomeLabel = document.createElement('label');
+      welcomeLabel.className = 'field-label welcome-label';
+      welcomeLabel.htmlFor = 'rsvp-welcome-dinner-' + i;
+      welcomeLabel.textContent = 'Welcome dinner';
+      var welcomeDinner = document.createElement('select');
+      welcomeDinner.id = 'rsvp-welcome-dinner-' + i;
+      welcomeDinner.className = 'rsvp-welcome-dinner';
+      welcomeDinner.setAttribute('aria-label', 'Welcome dinner for Guest ' + (i + 1));
+      welcomeDinner.setAttribute('aria-required', 'true');
+      [['', 'Please select'], ['yes', 'Joyfully attending'], ['no', 'Regretfully unable']].forEach(function (choice) {
+        var option = document.createElement('option');
+        option.value = choice[0];
+        option.textContent = choice[1];
+        welcomeDinner.appendChild(option);
+      });
+      welcomeDinner.value = welcomeValue !== undefined ? welcomeValue : (savedWelcomeDinner[i] || '');
+      welcomeField.appendChild(welcomeLabel);
+      welcomeField.appendChild(welcomeDinner);
+      choices.appendChild(welcomeField);
+    }
+  }
   /* Rebuilt whenever the count changes. Fields already on screen keep their
      values; new positions use an earlier answer or the invitation names. */
   function buildGuestFields(n, restoreSaved) {
@@ -932,49 +1103,8 @@
       entry.appendChild(input);
       var choices = document.createElement('div');
       choices.className = 'guest-choices';
-      if (dietaryReady) {
-        var dietField = document.createElement('div');
-        var dietLabel = document.createElement('label');
-        dietLabel.className = 'field-label diet-label';
-        dietLabel.htmlFor = 'rsvp-diet-' + i;
-        dietLabel.textContent = 'Dietary preference';
-        var diet = document.createElement('select');
-        diet.id = 'rsvp-diet-' + i;
-        diet.className = 'rsvp-diet';
-        [['none', 'None'], ['halal', 'Halal'], ['vegetarian', 'Vegetarian']].forEach(function (choice) {
-          var option = document.createElement('option');
-          option.value = choice[0];
-          option.textContent = choice[1];
-          diet.appendChild(option);
-        });
-        diet.value = typedDiets[i] || savedDiets[i] || 'none';
-        dietField.appendChild(dietLabel);
-        dietField.appendChild(diet);
-        choices.appendChild(dietField);
-      }
-      if (welcomeDinnerReady) {
-        var welcomeField = document.createElement('div');
-        var welcomeLabel = document.createElement('label');
-        welcomeLabel.className = 'field-label welcome-label';
-        welcomeLabel.htmlFor = 'rsvp-welcome-dinner-' + i;
-        welcomeLabel.textContent = 'Welcome dinner';
-        var welcomeDinner = document.createElement('select');
-        welcomeDinner.id = 'rsvp-welcome-dinner-' + i;
-        welcomeDinner.className = 'rsvp-welcome-dinner';
-        welcomeDinner.setAttribute('aria-label', 'Welcome dinner for Guest ' + (i + 1));
-        welcomeDinner.setAttribute('aria-required', 'true');
-        [['', 'Please select'], ['yes', 'Joyfully attending'], ['no', 'Regretfully unable']].forEach(function (choice) {
-          var option = document.createElement('option');
-          option.value = choice[0];
-          option.textContent = choice[1];
-          welcomeDinner.appendChild(option);
-        });
-        welcomeDinner.value = typedWelcomeDinner[i] !== undefined ? typedWelcomeDinner[i] : (savedWelcomeDinner[i] || '');
-        welcomeField.appendChild(welcomeLabel);
-        welcomeField.appendChild(welcomeDinner);
-        choices.appendChild(welcomeField);
-      }
       entry.appendChild(choices);
+      addGuestChoices(entry, i, typedDiets[i], typedWelcomeDinner[i]);
       nameBox.appendChild(entry);
     }
     showGuestPage(guestPage);
@@ -1029,7 +1159,10 @@
           guestChoicesChanged = true;
         }
         if (guestChoicesChanged) {
-          if (step2 && !step2.hidden) buildGuestFields(parseInt(guestsInput && guestsInput.value, 10) || 1);
+          var welcomeNote = $('#rsvp-welcome-note');
+          if (welcomeNote) welcomeNote.hidden = !welcomeDinnerReady;
+          $$('.guest-entry', nameBox).forEach(function (entry, i) { addGuestChoices(entry, i); });
+          queueFormViewport();
         }
       }).catch(function () {});
   }
@@ -1077,12 +1210,12 @@
       for (var i = guestPage; i < pageEnd; i++) {
         if (!inputs[i].value.trim()) {
           rsvpNote('Please enter Guest ' + (i + 1) + '\u2019s full name.');
-          inputs[i].focus();
+          focusFormField(inputs[i]);
           return;
         }
         if (welcomeDinnerReady && welcomes[i] && !welcomes[i].value) {
           rsvpNote('Please choose whether Guest ' + (i + 1) + ' will join the welcome dinner.');
-          welcomes[i].focus();
+          focusFormField(welcomes[i]);
           return;
         }
       }

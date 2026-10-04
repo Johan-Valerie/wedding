@@ -137,7 +137,15 @@ html.shell #invitation{
   scrollbar-width:none;
 }
 html.shell #invitation::-webkit-scrollbar{ display:none; }
-html.shell .child{ height:100%; }
+html.shell .child{ height:var(--page-height,100%); }
+/* Form pages may grow with enlarged display/text settings. One page scroller
+   keeps all fields reachable without a clipped form or an inner scrollbar. */
+html.shell .child.rsvp-page{ height:auto; min-height:var(--page-height,100%); }
+html.shell.form-editing #invitation{
+  bottom:auto; top:var(--form-top,0px); height:var(--form-height,100%);
+  scroll-behavior:auto; overflow-anchor:none;
+}
+html.form-editing #sound-toggle{ visibility:hidden; }
 #invitation:focus{ outline:none; }   /* focused on open, so the keyboard scrolls it */
 /* iOS 26 Safari ignores theme-color. It colours its status bar and its
    toolbar from the background of a fixed element touching that edge (at
@@ -739,7 +747,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #rsvp .micro.center{ margin-top:12px; }
 /* The first RSVP screen may scroll when the keyboard is open. Guest details
    show up to two guests, with dietary and dinner choices side by side. */
-#rsvp .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
+#rsvp .content{ max-height:none; overflow:visible; flex-shrink:0; }
 #rsvp .content.on-step2{
   max-height:none; overflow:visible; padding:18px 26px 64px;
 }
@@ -747,7 +755,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #rsvp .on-step2 h2{ margin-bottom:8px; }
 #rsvp .on-step2 .rsvp-instruction{ font-size:12px; line-height:1.5; margin-bottom:6px; }
 .guest-progress{ font-size:10px; letter-spacing:1px; color:var(--cream); margin:8px 0; }
-#rsvp .on-step2 input[type=text]{ padding:9px 12px; }
+#rsvp .on-step2 input[type=text]{ padding:9px 12px; font-size:16px; }
+#rsvp-form textarea{ font-size:16px; }
 #rsvp .on-step2 select{ padding:9px 7px; font-size:12px; }
 #rsvp .on-step2 .btn{ padding:10px 16px; margin-top:12px; }
 #rsvp .on-step2 #rsvp-back{ margin-top:8px; }
@@ -766,9 +775,8 @@ h3.serif{ font-size:22px; line-height:1.2; }
 #rsvp-hp{ position:absolute !important; left:-9999px !important; width:1px; height:1px; opacity:0; }
 
 /* guest details (stage 2) */
-/* the form is the tallest content in the deck — if a short screen can't
-   fit it, let it scroll inside its snapped section instead of clipping */
-#details .content{ max-height:100%; overflow-y:auto; scrollbar-width:thin; }
+/* Accommodation uses the page scroller too, including its expanded calendar. */
+#details .content{ max-height:none; overflow:visible; flex-shrink:0; }
 #details h2{ margin-bottom:6px; }
 .radio-col{ display:flex; flex-direction:column; gap:8px; }
 .radio-col .radio input + span{
