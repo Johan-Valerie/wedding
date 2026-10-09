@@ -12,7 +12,7 @@
   /* ── config ──────────────────────────────────────────────── */
   var WEDDING_DATE = new Date('2027-01-09T15:00:00+07:00');   // 3 PM, Bangkok (ICT)
   var EVENTS = {
-    welcome:   { title: 'Welcome Dinner — Johan & Valerie', start: '20270108T103000Z', loc: 'Asiatique The Riverfront', desc: 'Or depart from Asawin Grand Convention Hotel at 4:30 PM.' },
+    welcome:   { title: 'Welcome Dinner — Johan & Valerie', start: '20270108T103000Z' },   // the time only: no place, no set end
     ceremony:  { title: 'Holy Matrimony — Johan & Valerie', start: '20270109T080000Z', end: '20270109T093000Z', loc: 'La Chapelle Bangkok — Jardin de Juliet' },
     cocktail:  { title: 'Cocktail Party — Johan & Valerie', start: '20270109T090000Z', end: '20270109T110000Z', loc: 'La Chapelle Bangkok — La Fontaine' },
     reception: { title: 'Wedding Reception — Johan & Valerie', start: '20270109T110000Z', end: '20270109T150000Z', loc: 'La Chapelle Bangkok — Saint Hall' }
@@ -490,8 +490,9 @@
     list.forEach(function (ev) {
       lines.push('BEGIN:VEVENT',
         'UID:' + Math.random().toString(36).slice(2) + '@johanvalerie', 'DTSTAMP:' + stamp,
-        'SUMMARY:' + ev.title, 'DTSTART:' + ev.start, 'LOCATION:' + ev.loc);
-      if (ev.end) lines.push('DTEND:' + ev.end);     // the welcome dinner has no set end
+        'SUMMARY:' + ev.title, 'DTSTART:' + ev.start);
+      if (ev.loc) lines.push('LOCATION:' + ev.loc);   // the welcome dinner has no place
+      if (ev.end) lines.push('DTEND:' + ev.end);     // nor a set end
       if (ev.desc) lines.push('DESCRIPTION:' + ev.desc);
       lines.push('END:VEVENT');
     });
