@@ -534,6 +534,23 @@
     a.setAttribute('download', 'johan-valerie-' + (key === 'all' ? 'wedding' : key) + '.ics');
   });
 
+  /* ── WhatsApp: the chat opens with the request already written ── */
+  /* Every WhatsApp link (the number stays in its href) carries the couple's
+     template, with the guest's name from the invitation link (?to=); a link
+     without one leaves the name for the guest to write. */
+  var WHATSAPP_TEXT = [
+    'Hello, I would like to request assistance regarding the wedding.',
+    '',
+    'Couple’s Name : Johan & Valerie',
+    'Event’s Details : Bangkok, January 9th 2027',
+    'Guest’s Name : ' + guestKey,
+    'Inquiry / Assistance Needed:'
+  ].join('\n');
+  $$('a[href*="wa.me/"]').forEach(function (a) {
+    var number = /wa\.me\/(\d+)/.exec(a.getAttribute('href'));
+    if (number) a.setAttribute('href', 'https://wa.me/' + number[1] + '?text=' + encodeURIComponent(WHATSAPP_TEXT));
+  });
+
   /* ── RSVP stepper ────────────────────────────────────────── */
   var stepMinus = $('#step-minus'), stepPlus = $('#step-plus');
   if (stepMinus) stepMinus.addEventListener('click', function () {
