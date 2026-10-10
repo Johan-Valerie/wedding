@@ -164,6 +164,22 @@ html.form-editing #sound-toggle{ visibility:hidden; }
   .edge-tint.top{ top:0; }
   .edge-tint.bottom{ bottom:0; }
 }
+/* A phone held sideways (main.js sets html.turn-upright). Every page is one
+   upright screen; on its side a phone leaves under ~500px of height, which
+   cuts the pages off (the cover's Open Invitation button falls below the
+   edge), so the guest is asked to turn it upright, over everything. */
+#rotate-note{
+  position:fixed; inset:0; z-index:10000;
+  background:#000; color:var(--white);
+  flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  padding:24px; text-align:center;
+}
+html.turn-upright #rotate-note{ display:flex !important; }
+#rotate-note svg{ width:44px; height:44px; animation:turn-upright 2.8s ease-in-out infinite; }
+#rotate-note .eyebrow{ margin:4px 0 0; font-size:12px; letter-spacing:2.4px; }
+#rotate-note .serif-italic{ font-size:17px; color:rgba(255,255,255,.72); }
+@keyframes turn-upright{ 0%, 22%{ transform:rotate(-90deg); } 58%, 100%{ transform:rotate(0); } }
+@media (prefers-reduced-motion:reduce){ #rotate-note svg{ animation:none; } }
 body::-webkit-scrollbar{ display:none; }
 body{ scrollbar-width:none; }
 img{ max-width:100%; display:block; }

@@ -99,6 +99,31 @@
     else { playAudio(); if (video) video.play().catch(function () {}); }
   });
 
+  /* ── a phone held sideways ───────────────────────────────── */
+  /* Each page is one upright screen, so a phone on its side is asked to turn
+     upright (#rotate-note). Judged by the device's own orientation, never the
+     page's shape: a keyboard that shrinks the page while a guest types must
+     not bring it up (isFormField is below). A tablet (shorter side over
+     500px) keeps the page. */
+  var coarsePointer = window.matchMedia ? matchMedia('(pointer: coarse)') : null;
+  function deviceSideways() {
+    var type = screen.orientation && screen.orientation.type;
+    if (type) return type.indexOf('landscape') === 0;
+    if (typeof window.orientation === 'number') return Math.abs(window.orientation) === 90;
+    return window.innerWidth > window.innerHeight;
+  }
+  function syncTurnUpright() {
+    var phone = !!coarsePointer && coarsePointer.matches && Math.min(screen.width, screen.height) <= 500;
+    document.documentElement.classList.toggle('turn-upright',
+      phone && deviceSideways() && !isFormField(document.activeElement));
+  }
+  syncTurnUpright();
+  window.addEventListener('resize', syncTurnUpright);
+  window.addEventListener('orientationchange', syncTurnUpright);
+  if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', syncTurnUpright);
+  document.addEventListener('focusin', syncTurnUpright);
+  document.addEventListener('focusout', function () { setTimeout(syncTurnUpright, 0); });
+
   /* ── the scroller (app shell, as on the engagement) ───────── */
   /* The pages scroll inside #invitation, a fixed full-screen box, and the
      document stays still on its black canvas, so Safari's bars sit on black
