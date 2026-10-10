@@ -1,0 +1,2 @@
+# Calendar files keep their CRLF line ends (RFC 5545), byte for byte
+*.ics -text

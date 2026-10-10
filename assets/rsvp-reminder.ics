@@ -9,7 +9,8 @@ DTSTAMP:20261002T000000Z
 SUMMARY:RSVP for Johan and Valerie's wedding
 DTSTART;VALUE=DATE:20261209
 DTEND;VALUE=DATE:20261210
-DESCRIPTION:Please respond by 9 December 2026 using your personal invitation link.
+DESCRIPTION:Please respond by 9 December 2026 using your personal invitatio
+ n link.
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Wedding RSVP is due tomorrow

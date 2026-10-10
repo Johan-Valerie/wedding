@@ -11,6 +11,7 @@
 
   /* ── config ──────────────────────────────────────────────── */
   var WEDDING_DATE = new Date('2027-01-09T15:00:00+07:00');   // 3 PM, Bangkok (ICT)
+  /* also written out in assets/wedding.ics, wedding-hm.ics and welcome-dinner.ics */
   var EVENTS = {
     welcome:   { title: 'Welcome Dinner — Johan & Valerie', start: '20270108T103000Z' },   // the time only: no place, no set end
     ceremony:  { title: 'Holy Matrimony — Johan & Valerie', start: '20270109T080000Z', end: '20270109T093000Z', loc: 'La Chapelle Bangkok — Jardin de Juliet' },
@@ -505,33 +506,57 @@
   }
   setInterval(tick, 1000); tick();
 
-  /* ── add-to-calendar (data-URI ICS, like the original) ───── */
-  /* One button for the page: data-calendar="all" is a single file holding
-     every event this guest is invited to (Holy Matrimony only with &hm=1),
-     which the phone offers to add in one go. A single key still works. */
-  function icsFor(list) {
-    var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-    var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Johan & Valerie//Wedding//EN'];
-    list.forEach(function (ev) {
-      lines.push('BEGIN:VEVENT',
-        'UID:' + Math.random().toString(36).slice(2) + '@johanvalerie', 'DTSTAMP:' + stamp,
-        'SUMMARY:' + ev.title, 'DTSTART:' + ev.start);
-      if (ev.loc) lines.push('LOCATION:' + ev.loc);   // the welcome dinner has no place
-      if (ev.end) lines.push('DTEND:' + ev.end);     // nor a set end
-      if (ev.desc) lines.push('DESCRIPTION:' + ev.desc);
-      lines.push('END:VEVENT');
-    });
-    lines.push('END:VCALENDAR');
-    return 'data:text/calendar;charset=utf8;base64,' + btoa(unescape(encodeURIComponent(lines.join('\r\n'))));
+  /* ── add to calendar ─────────────────────────────────────── */
+  /* An iPhone, iPad or computer opens a real calendar file from the site:
+     Safari shows its own "Add to Calendar" sheet for a file served as
+     text/calendar (the data: link this used to build it would only offer
+     as a download), and a computer hands it to Outlook or Calendar. One
+     file holds every event the guest is invited to (Holy Matrimony only
+     with &hm=1). Most Android phones calendar with Google Calendar, which
+     cannot open such a file, so there the button opens Google Calendar's
+     new-event page, filled in; one Google link is one event, so the
+     wedding day becomes a single entry with its schedule in the notes.
+     The times live in EVENTS and in assets/*.ics: change them together. */
+  var onAndroid = /Android/i.test(navigator.userAgent);
+  var withHolyMatrimony = params.get('hm') === '1';
+  var CALENDAR_FILES = {
+    all: withHolyMatrimony ? 'assets/wedding-hm.ics' : 'assets/wedding.ics',
+    welcome: 'assets/welcome-dinner.ics'
+  };
+  function bangkokClock(stamp) {   // '20270109T080000Z' → '3:00 PM' (Bangkok, UTC+7)
+    var h = (parseInt(stamp.slice(9, 11), 10) + 7) % 24;
+    return (h % 12 || 12) + ':' + stamp.slice(11, 13) + (h < 12 ? ' AM' : ' PM');
+  }
+  function googleCalendar(title, start, end, details, place) {
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title) +
+      '&dates=' + start + '/' + end + '&ctz=Asia%2FBangkok' +
+      (details ? '&details=' + encodeURIComponent(details) : '') +
+      (place ? '&location=' + encodeURIComponent(place) : '');
+  }
+  function opensApart(a, href) {
+    a.setAttribute('href', href);
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener');
   }
   $$('[data-calendar]').forEach(function (a) {
     var key = a.getAttribute('data-calendar');
-    var keys = key !== 'all' ? [key]
-      : (params.get('hm') === '1' ? ['ceremony', 'cocktail', 'reception'] : ['cocktail', 'reception']);
-    var list = keys.map(function (k) { return EVENTS[k]; }).filter(Boolean);
-    if (!list.length) return;
-    a.setAttribute('href', icsFor(list));
-    a.setAttribute('download', 'johan-valerie-' + (key === 'all' ? 'wedding' : key) + '.ics');
+    if (!onAndroid) { if (CALENDAR_FILES[key]) a.setAttribute('href', CALENDAR_FILES[key]); return; }
+    if (key === 'all') {
+      var day = (withHolyMatrimony ? ['ceremony', 'cocktail', 'reception'] : ['cocktail', 'reception'])
+        .map(function (k) { return EVENTS[k]; });
+      opensApart(a, googleCalendar('Wedding of Johan & Valerie', day[0].start, day[day.length - 1].end,
+        day.map(function (ev) {
+          return ev.title.split(' — ')[0] + ' — ' + bangkokClock(ev.start) + ', ' + ev.loc.split(' — ')[1];
+        }).join('\n'), 'La Chapelle Bangkok'));
+    } else if (EVENTS[key]) {
+      var ev = EVENTS[key];   // the welcome dinner: its time only, no end and no place
+      opensApart(a, googleCalendar(ev.title, ev.start, ev.end || ev.start, '', ev.loc));
+    }
+  });
+  /* the RSVP deadline reminder, a plain link to its own calendar file */
+  if (onAndroid) $$('a[href$="rsvp-reminder.ics"]').forEach(function (a) {
+    opensApart(a, googleCalendar('RSVP for Johan and Valerie’s wedding', '20261209', '20261210',
+      'Please respond by 9 December 2026 using your personal invitation link.', ''));
   });
 
   /* ── WhatsApp: the chat opens with the request already written ── */
