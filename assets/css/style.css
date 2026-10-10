@@ -498,9 +498,13 @@ h3.serif{ font-size:22px; line-height:1.2; }
   position:relative; display:flex; flex-direction:column; align-items:center;
   font-size:clamp(50px,16.6vw,95px); margin:.05em 0 -.24em;
 }
+/* Pinyon's J swings .26em left of the word, and the closing n and e run
+   .07em past its end. The side padding puts that ink inside the box, or
+   iOS Safari leaves it unpainted as the names fade in (the J's loop was cut
+   off). Even on both sides, so the names stay where they were. */
 .names-centred .name-lg{
   font-family:var(--script); font-weight:400;
-  font-size:1em; line-height:1; margin:0;
+  font-size:1em; line-height:1; margin:0; padding:0 .3em;
 }
 .names-centred .name-lg:last-of-type{ margin-top:-.13em; }
 .amp-centred{
