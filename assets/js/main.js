@@ -800,10 +800,15 @@
   var savedNames = [];      // names from an earlier answer, restored on a return visit
   var savedDiets = [];      // matching dietary choices (none, halal, vegetarian)
   var savedWelcomeDinner = []; // matching welcome-dinner choices (yes, no)
-  var dietaryReady = false; // show choices only after the deployed backend can save them
-  var welcomeDinnerReady = false;
-  var customReady = false;  // the current backend must also recognize custom stays
-  var partialReady = false; // accepts unfinished dinner choices while editing
+  /* The deployed backend saves all of these (its ?action=features answer), so
+     the choices show from the start. Waiting for that check left the diet and
+     welcome-dinner choices off the form whenever it failed, or came back
+     after a quick guest had already moved on; now only a backend that
+     answers without them takes them away. */
+  var dietaryReady = true;
+  var welcomeDinnerReady = true;
+  var customReady = true;   // the backend recognizes custom stays
+  var partialReady = true;  // accepts unfinished dinner choices while editing
   var touched = false;      // a guest already filling in keeps their form over a late restore
   var SEND_LABEL = sendBtn ? sendBtn.textContent : '';
   var CONFIRM_LABEL = confirmBtn ? confirmBtn.textContent : '';
@@ -1031,10 +1036,14 @@
       : 'Guest ' + end + ' of ' + entries.length;
     if (confirmBtn) { confirmBtn.textContent = CONFIRM_LABEL; confirmBtn.disabled = false; }
   }
-  /* Adding late-arriving choices leaves the focused name input in place. */
+  /* Adds the choices the backend can save and drops any it can't, leaving the
+     focused name input in place. */
   function addGuestChoices(entry, i, dietValue, welcomeValue) {
     var choices = $('.guest-choices', entry);
-    if (dietaryReady && !$('.rsvp-diet', entry)) {
+    var oldDiet = $('.rsvp-diet', entry), oldWelcome = $('.rsvp-welcome-dinner', entry);
+    if (!dietaryReady && oldDiet) choices.removeChild(oldDiet.parentNode);
+    if (!welcomeDinnerReady && oldWelcome) choices.removeChild(oldWelcome.parentNode);
+    if (dietaryReady && !oldDiet) {
       var dietField = document.createElement('div');
       var dietLabel = document.createElement('label');
       dietLabel.className = 'field-label diet-label';
@@ -1054,7 +1063,7 @@
       dietField.appendChild(diet);
       choices.appendChild(dietField);
     }
-    if (welcomeDinnerReady && !$('.rsvp-welcome-dinner', entry)) {
+    if (welcomeDinnerReady && !oldWelcome) {
       var welcomeField = document.createElement('div');
       var welcomeLabel = document.createElement('label');
       welcomeLabel.className = 'field-label welcome-label';
@@ -1147,24 +1156,16 @@
     fetch(API_URL + '?action=features')
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (!d) return;
+        if (!d || d.ok !== true) return;   // no answer: keep everything on
         customReady = d.customArrangements === true;
         partialReady = d.partialRsvp === true;
-        var guestChoicesChanged = false;
-        if (d.dietaryChoices === true && !dietaryReady) {
-          dietaryReady = true;
-          guestChoicesChanged = true;
-        }
-        if (d.welcomeDinnerRsvp === true && !welcomeDinnerReady) {
-          welcomeDinnerReady = true;
-          guestChoicesChanged = true;
-        }
-        if (guestChoicesChanged) {
-          var welcomeNote = $('#rsvp-welcome-note');
-          if (welcomeNote) welcomeNote.hidden = !welcomeDinnerReady;
-          $$('.guest-entry', nameBox).forEach(function (entry, i) { addGuestChoices(entry, i); });
-          queueFormViewport();
-        }
+        if (d.dietaryChoices === true && d.welcomeDinnerRsvp === true) return;
+        dietaryReady = d.dietaryChoices === true;
+        welcomeDinnerReady = d.welcomeDinnerRsvp === true;
+        var welcomeNote = $('#rsvp-welcome-note');
+        if (welcomeNote) welcomeNote.hidden = !welcomeDinnerReady;
+        $$('.guest-entry', nameBox).forEach(function (entry, i) { addGuestChoices(entry, i); });
+        queueFormViewport();
       }).catch(function () {});
   }
   if (nextBtn) nextBtn.addEventListener('click', goNext);
