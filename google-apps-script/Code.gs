@@ -51,7 +51,8 @@
  *   RSVP       — the raw submissions, one row per invitation, plus the
  *                Approved checkbox that gates a wish onto the site. Guest
  *                diets and welcome-dinner choices are saved for repeat edits.
- *   Opens log  — one row per page load from a personal link: when, which
+ *   Opens log  — one row each time OPEN INVITATION is tapped on a personal
+ *                link (the site counts the tap, not the page load): when, which
  *                invitation, the exact link, what that link shows, and whether
  *                it still matches the Sheet. "No" = that guest holds a link
  *                from before a change (Holy Matrimony ticked, seats changed,
@@ -112,7 +113,7 @@ var LINKNAMES_HEADER = 'Link names';
 var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5, DIET:6, WELCOME:7 };
 var GLHEADERS = ['No.','Guest name','Invitation no.','Invitation name','Confirmed (WIB)','Diet','Welcome dinner'];
 
-/* Opens log — one row per page load, with the exact link used. Seats and Holy
+/* Opens log — one row per opened invitation, with the exact link used. Seats and Holy
    Matrimony live only in the link, so the link is the only record of what the
    guest saw. "Matches the Sheet?" compares it with the row as it is NOW.
    (Not the pre-July "Opens" tab above, which setup() folds in and deletes.) */

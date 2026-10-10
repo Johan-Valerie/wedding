@@ -387,6 +387,7 @@
   if (openBtn) openBtn.addEventListener('click', function () {
     if (opened) return;
     opened = true;
+    countOpen();
 
     setSnap(false);
     if (cover) {                              // the engagement's exit: fade + a slight zoom
@@ -1404,11 +1405,16 @@
     });
   }
 
-  /* count this open (per personalized link) — fire and forget. The whole link
-     goes along: seats and Holy Matrimony live only in the link, and a link
-     sent before a change keeps showing the old page, so the Sheet logs which
-     one was opened. Older backends ignore the extra field. */
-  if (API_URL && guestKey) {
+  /* count this open (per personalized link) — fire and forget, when the
+     guest taps OPEN INVITATION rather than when the page loads. A page can
+     load with nobody there: a browser reloading an old tab, Chrome pre-loading
+     a link from its history while an address is typed, an app building a link
+     preview. Counted at load, each of those marked an invitation opened.
+     The whole link goes along: seats and Holy Matrimony live only in the link,
+     and a link sent before a change keeps showing the old page, so the Sheet
+     logs which one was opened. Older backends ignore the extra field. */
+  function countOpen() {
+    if (!API_URL || !guestKey) return;
     try {
       sendApi({ action: 'open', key: guestKey, link: location.href.split('#')[0] }).catch(function () {});
     } catch (e) {}
