@@ -489,7 +489,13 @@
     /* the page under each button decides its colour: the monogram's centre
        is 43px down, the music button's 41px up from the bottom */
     if (navBtn) navBtn.classList.toggle('on-light', isLight(sectionAt(sections, 43)));
-    if (soundBtn) soundBtn.classList.toggle('on-light', isLight(sectionAt(sections, window.innerHeight - 41)));
+    if (soundBtn) {
+      var underSound = sectionAt(sections, window.innerHeight - 41);
+      soundBtn.classList.toggle('on-light', isLight(underSound));
+      /* over an RSVP step: on a short phone screen the button steps aside
+         from the form's buttons (style.css) */
+      soundBtn.classList.toggle('over-form', !!underSound && underSound.classList.contains('rsvp-page'));
+    }
   }
   scrollSource.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);

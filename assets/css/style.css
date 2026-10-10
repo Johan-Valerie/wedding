@@ -1128,3 +1128,21 @@ h3.serif{ font-size:22px; line-height:1.2; }
   #events .events-actions{ margin-top:18px; }
   #events .event-divider{ margin:9px 0; }
 }
+
+/* Short phone screens (an iPhone SE in Safari, Display Zoom, a large Android
+   display size). The RSVP steps are taller than the screen there, and the
+   music button would sit on their buttons, so it steps aside while one of
+   them is under it (main.js sets .over-form); the music keeps playing. The
+   accommodation heading comes up to the menu mark's corner: it wraps short
+   of the mark, and on 320px screens it and the wishes heading set smaller. */
+@media (max-height:620px) and (max-width:600px){
+  #sound-toggle{ transition:background .35s ease, opacity .3s ease, visibility .3s; }
+  #sound-toggle.over-form{ opacity:0; visibility:hidden; pointer-events:none; }
+  #details h2{ max-width:calc(100vw - 124px); margin-left:auto; margin-right:auto; }
+}
+@media (max-width:340px){
+  #details h2{ font-size:19.5px; }
+}
+@media (max-width:340px) and (max-height:560px){
+  #wishes h2{ font-size:18px; }
+}
