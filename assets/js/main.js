@@ -736,7 +736,7 @@
     var n = parseInt(nights, 10);
     if (accomCode === 'upgrade' || (accomCode === 'provided' && n > HOSTED_NIGHTS)) accomCode = 'custom';
     if (yes && accomCode === 'provided') {
-      parts.push('Asawin Grand Convention Hotel');
+      parts.push('Century Park Hotel Bangkok');
       parts.push(n === 1 ? 'Your one-night stay is with our compliments.'
         : n === 2 ? 'Your two-night stay is with our compliments.'
         : 'Your stay is with our compliments.');
@@ -753,7 +753,7 @@
     onScroll();
   }
 
-  /* the hosted Asawin stay is limited to two nights */
+  /* the hosted Century Park stay is limited to two nights */
   var nightsRow = $('#details-nights-row');
   var nightsSel = $('#details-nights');
   var nightsNote = $('#details-nights-note');

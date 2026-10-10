@@ -646,8 +646,7 @@ h3.serif{ font-size:22px; line-height:1.2; }
 }
 #events .event-divider{ width:100%; max-width:320px; height:1px; margin:19px 0; }
 #events .events-actions{ margin-top:28px; }
-/* the welcome dinner's page: the events page's veil over the video, and the
-   Asawin line kept to two even lines */
+/* the welcome dinner's page: the events page's veil over the video */
 #welcome .section-scrim{ background:linear-gradient(rgba(0,0,0,.62) 0%, rgba(0,0,0,.72) 100%); }
 #welcome .pill-row{ grid-template-columns:140px; }   /* its one button, centred */
 /* The engagement's pill, sized down for a pair: one size in every layout,

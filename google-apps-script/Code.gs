@@ -127,7 +127,7 @@ var ACCOM_LABELS = {
   custom:   'Custom arrangements'
 };
 
-/* The standard Asawin choice is at most two hosted nights. Longer stays are
+/* The standard Century Park choice is at most two hosted nights. Longer stays are
    arranged directly and saved as Custom arrangements. */
 var HOSTED_NIGHTS = 2;
 
@@ -366,7 +366,7 @@ function setupDashboard_(ss) {
     ['      of which on us (first ' + HOSTED_NIGHTS + ' per room)',
                                     '=ARRAYFORMULA(SUM(IF(' + hostedYes + ',IF(' + nightsCol + '>' + HOSTED_NIGHTS +
                                     ',' + HOSTED_NIGHTS + ',' + nightsCol + '),0)))'],
-    ['      of which extra, guests pay Asawin',
+    ['      of which extra, guests pay Century Park',
                                     '=ARRAYFORMULA(SUM(IF(' + hostedYes + ',IF(' + nightsCol + '>' + HOSTED_NIGHTS +
                                     ',' + nightsCol + '-' + HOSTED_NIGHTS + ',0),0)))'],
     ['Upgrade hotel (own cost)',    '=COUNTIFS(' + yes + ',' + I('RSVP!H2:H') + ',"' + ACCOM_LABELS.upgrade + '")'],
