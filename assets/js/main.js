@@ -858,6 +858,7 @@
   var GUESTS_PER_PAGE = 2;
   var editingResponse = false;
   var responseData = null;
+  var confirmedAnswer = null; // the names, diets and dinner choices Apps Script last confirmed
   var editSaveTimer;
   var saveQueue = Promise.resolve();
   var saveVersion = 0;
@@ -945,6 +946,7 @@
       return postResponse(fields);
     }).then(function () {
       rememberResponse(fields);
+      if (fields.guests) confirmedAnswer = { guests: fields.guests, diets: fields.diets, welcomeDinner: fields.welcomeDinner };
       if (version === saveVersion) saveNote(noteId, editingResponse ? 'Changes saved.' : '');
     }).catch(function (err) {
       if (version === saveVersion) saveNote(noteId, 'Couldn\u2019t save your changes. Please try again.');
@@ -1012,7 +1014,19 @@
     fields.accommodation = chosen.value;
     fields.nights = chosen.value === 'provided' ? nights : '';
     fields.arrival = date; fields.arrivalHour = hour;
+    /* Names, diets and dinner choices Apps Script has already confirmed are
+       not written again: the post then carries only the stay, and the sheet
+       skips rewriting the RSVP row and the Guest List (each save costs
+       seconds there). Anything unconfirmed or changed goes in full. */
+    if (confirmedAnswer && sameList(confirmedAnswer.guests, fields.guests) &&
+        sameList(confirmedAnswer.diets, fields.diets) && sameList(confirmedAnswer.welcomeDinner, fields.welcomeDinner)) {
+      delete fields.guests; delete fields.diets; delete fields.welcomeDinner;
+    }
     return fields;
+  }
+  function sameList(a, b) {
+    if (!a || !b) return !a && !b;
+    return a.length === b.length && a.join('\n') === b.join('\n');
   }
   function scheduleEditSave(stage, delay) {
     if (!editingResponse) return;
@@ -1284,6 +1298,23 @@
     }
     var fields = yes ? guestPayload(true) : attendancePayload();
     if (!fields) return;
+    /* An attending guest goes straight on while the answer saves: Apps Script
+       takes seconds a save, and the accommodation step sends whatever this
+       save has not confirmed and waits for it, so the RSVP is still only
+       complete once the sheet has it. Declining, or editing an earlier
+       answer, waits here as before. */
+    if (yes && !editingResponse && API_URL) {
+      savedNames = fields.guests.slice();
+      if (fields.diets) savedDiets = fields.diets.slice();
+      if (fields.welcomeDinner) savedWelcomeDinner = fields.welcomeDinner.slice();
+      saveResponse(fields, '#rsvp-note').then(function () { loadWishes(); }).catch(function () {});
+      if (infoContinue) infoContinue.hidden = false;
+      var progressNote = $('#info-progress-note');
+      if (progressNote) progressNote.hidden = false;
+      reopenDetails('Required to complete your confirmation');
+      unlockInfo(true);
+      return;
+    }
     var btn = yes ? confirmBtn : sendBtn;
     setFormBusy(form, true);
     if (btn) { btn.textContent = 'Saving\u2026'; btn.disabled = true; }
