@@ -18,16 +18,15 @@
  *   choice while another is still unanswered. Final confirmation still
  *   requires every attending guest's dinner choice.
  *
- * THE FIVE TABS
+ * THE SIX TABS
  *   Invitation — one row per invitation (what used to be "Guests"). Column A
  *                is the invitation number: the row's position, by formula.
  *                Type a Guest name (and a Companion for a couple) and the
  *                personalized link appears.
  *
  *                The Holy Matrimony tickbox adds &hm=1 to that row's link,
- *                which is what shows the 3 PM ceremony card. It is read from
- *                the link alone, so tick it BEFORE the link goes out — a link
- *                already sent does not pick up a later tick.
+ *                which shows the 3 PM ceremony card. New websites also read
+ *                current seats, names and Holy Matrimony from this Sheet.
  *
  *                Status, Pax confirmed, Accommodation and Nights are written
  *                by this script, not by formulas (see syncInvitationStatus_).
@@ -50,7 +49,13 @@
  *                cell keeps the name it had (onEdit), and opening or answering
  *                adds the name the guest used. Type a name in by hand to claim
  *                a stray answer. If you REUSE a row for a different person,
- *                clear this cell, or the first person's answer counts for them.
+ *                clear this cell AND its Invitation ID before running
+ *                refreshLinks(), so the previous guest's response cannot
+ *                become the new guest's response.
+ *
+ *                INVITATION ID is generated once per named row and placed
+ *                before the name in new links. It is the primary identity;
+ *                Link names remain available for already-sent older links.
  *   Guest List — one row per confirmed person, written by the site. Each
  *                invitation's rows are replaced whenever it re-submits.
  *                Diet and welcome-dinner attendance are selected per guest; Table/Room columns
@@ -66,11 +71,14 @@
  *                renamed); re-send them the link in column F. Created by
  *                setup()/refreshLinks(), never cleared by anything.
  *   Dashboard  — counts only; holds no data of its own.
+ *   RSVP errors — failed RSVP/detail saves, including the requested
+ *                attendance, save ID and reason. Never cleared by setup().
  *
- * Rows are matched to invitations by NAME everywhere — the current name or
- * any of its Link names — never by number. The number is only the row's
- * position, so inserting a row changes it; the copies in RSVP and Guest List
- * are refreshed by refreshLinks().
+ * Rows are matched by Invitation ID. Old records/links with no ID can match
+ * the current name or Link names; a unique, sufficiently long shortened
+ * legacy name can also be linked. Ambiguous/unknown identities are refused.
+ * The invitation number is only the row's position; refreshLinks() updates
+ * its copies in RSVP and Guest List after rows move.
  *
  * setup() is safe to re-run. It re-reads every tab by HEADER NAME, so data
  * follows its column when columns move, and it keeps any column it does not
@@ -99,10 +107,12 @@ var FILL_ROWS = 1000;
 
 /* RSVP columns (1-based) — append-only, see above */
 var COL = { TIME:1, KEY:2, NAME:3, ATTENDING:4, PAX:5, WISHES:6, APPROVED:7,
-            ACCOM:8, NIGHTS:9, ARRIVAL:10, DETAILS_AT:11, INVNO:12, GUESTS:13, DIETS:14, WELCOME:15 };
+            ACCOM:8, NIGHTS:9, ARRIVAL:10, DETAILS_AT:11, INVNO:12, GUESTS:13, DIETS:14, WELCOME:15,
+            INV_ID:16, SAVE_ID:17, SAVE_HISTORY:18 };
 var HEADERS = ['Timestamp','Guest link (key)','Invitation name','Attending','Pax',
                'Wishes','Approved','Accommodation','Nights','Arrival','Details completed',
-               'Invitation no.','Guest names','Guest diets','Guest welcome dinner'];
+               'Invitation no.','Guest names','Guest diets','Guest welcome dinner',
+               'Invitation ID','Last save ID','Recent save IDs'];
 
 /* Invitation columns (1-based) */
 var ICOL = { NO:1, NAME:2, COMPANION:3, SEATS:4, HOLMAT:5, LINK:6, STATUS:7, PAX:8,
@@ -115,6 +125,10 @@ var IHEADERS = ['Invitation no.','Guest name','Companion name','Max seats','Holy
    and a column you added yourself must not be written over. setup() carries it
    like any column of yours. */
 var LINKNAMES_HEADER = 'Link names';
+var INV_ID_HEADER = 'Invitation ID';
+var SAVE_LOG_SHEET = 'RSVP errors';
+var SAVE_LOG_HEADERS = ['Time (WIB)', 'Action', 'Name on link', 'Invitation ID',
+                        'Save ID', 'Requested attendance', 'Requested pax', 'Error', 'Retryable'];
 
 /* WhatsApp: each invitation's message, in the couple's wording, and a link
    that opens WhatsApp with it typed out. Both are formulas down the tab, so
@@ -159,12 +173,13 @@ var INVITE_MESSAGE = [
 ];
 
 /* Guest List columns (1-based) */
-var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5, DIET:6, WELCOME:7 };
-var GLHEADERS = ['No.','Guest name','Invitation no.','Invitation name','Confirmed (WIB)','Diet','Welcome dinner'];
+var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5, DIET:6, WELCOME:7, INV_ID:8 };
+var GLHEADERS = ['No.','Guest name','Invitation no.','Invitation name','Confirmed (WIB)','Diet','Welcome dinner','Invitation ID'];
 
-/* Opens log — one row per opened invitation, with the exact link used. Seats and Holy
-   Matrimony live only in the link, so the link is the only record of what the
-   guest saw. "Matches the Sheet?" compares it with the row as it is NOW.
+/* Opens log — one row per opened invitation, with the exact link used.
+   "Page shown" records the URL's fallback settings; new websites also load
+   the current invitation settings from the status lookup.
+   "Matches the Sheet?" compares the link with the row as it is NOW.
    (Not the pre-July "Opens" tab above, which setup() folds in and deletes.) */
 var OLOG_SHEET = 'Opens log';
 var OLHEADERS  = ['Time (WIB)','Invitation no.','Name on link','Page shown',
@@ -200,10 +215,11 @@ function setup() {
     setupGuestList_(ss);
     restampNumbers_();
     setupOpensLog_(ss);
+    setupSaveLog_(ss);
     setupDashboard_(ss);
     return 'Setup complete.\n\n' +
       'Tabs: Invitation (was "Guests", now numbered in column A), Guest List ' +
-      '(filled in by the site), RSVP, Opens log, Dashboard.\n\n' +
+      '(filled in by the site), RSVP, Opens log, RSVP errors, Dashboard.\n\n' +
       'Now Deploy → Manage deployments → edit → New version, so the live web ' +
       'app picks this up. Until you do, the old version is still answering.' +
       reportText_(report);
@@ -437,9 +453,11 @@ function setupDashboard_(ss) {
 function writeInvitationFormulas_(s) {
   var n = Math.max(FILL_ROWS, s.getLastRow()) - 1;
   ensureSize_(s, n + 1, IHEADERS.length);
+  var idCol = ensureInvitationIds_(s, n);
   var key  = 'TRIM(B{r}) & IF(TRIM(C{r})="", "", " & " & TRIM(C{r}))';
   var no   = '=IF(B{r}="","",ROW()-1)';
-  var link = '=IF(B{r}="","", "' + SITE_URL + '?to=" & ENCODEURL(' + key + ')' +
+  var link = '=IF(B{r}="","", "' + SITE_URL + '?id=" & ' + col_(idCol) + '{r}' +
+             ' & "&to=" & ENCODEURL(' + key + ')' +
              ' & "&max=" & IF(D{r}="",2,D{r}) & IF(E{r}=TRUE, "&hm=1", ""))';
   var N = [], L = [];
   for (var i = 0; i < n; i++) {
@@ -452,6 +470,34 @@ function writeInvitationFormulas_(s) {
   writeMessageFormulas_(s, n, key);
   ensureTickboxColumn_(s, ICOL.HOLMAT, n);
   return syncInvitationStatus_(s);
+}
+
+/** An opaque identity before the long name, so a shortened or renamed link
+ * still belongs to its invitation. Only setup()/refreshLinks() creates IDs. */
+function ensureInvitationIds_(s, n) {
+  var col = headerCol_(s, INV_ID_HEADER, 150,
+    'Permanent invitation identity. Keep it when correcting a name. Clear this AND Link names when reusing a row for another person.');
+  var names = s.getRange(2, ICOL.NAME, n, 1).getValues();
+  var ids = s.getRange(2, col, n, 1).getValues(), used = {}, changed = false;
+  ids.forEach(function (r) { if (r[0]) used[String(r[0])] = true; });
+  for (var i = 0; i < n; i++) {
+    if (!String(names[i][0]).trim() || ids[i][0]) continue;
+    var id;
+    do { id = Utilities.getUuid().replace(/-/g, '').slice(0, 12); } while (used[id]);
+    ids[i][0] = id; used[id] = true; changed = true;
+  }
+  if (changed) s.getRange(2, col, n, 1).setValues(ids);
+  return col;
+}
+
+function setupSaveLog_(ss) {
+  var s = ss.getSheetByName(SAVE_LOG_SHEET);
+  if (!s) s = ss.insertSheet(SAVE_LOG_SHEET);
+  if (!s.getLastRow()) {
+    s.getRange(1, 1, 1, SAVE_LOG_HEADERS.length).setValues([SAVE_LOG_HEADERS])
+      .setFontWeight('bold').setBackground('#292929').setFontColor('#ffffff');
+    s.setFrozenRows(1);
+  }
 }
 
 /**
@@ -590,7 +636,7 @@ function syncInvitationStatus_(s) {
      before Link names knew both); the most recent one is the answer. */
   var answers = {};
   rows.forEach(function (r) {
-    var row = rowOf_(inv, r[COL.KEY - 1]);
+    var row = answerRow_(inv, r[COL.KEY - 1], r[COL.INV_ID - 1]);
     if (!row) return;
     var t = timeOf_(r[COL.TIME - 1]);
     if (!answers[row] || t >= answers[row].t) answers[row] = { r: r, t: t };
@@ -639,17 +685,18 @@ function recordCurrentNames_(inv, n) {
  * so a bare first name never counts.
  */
 function adoptStrayAnswers_(inv, rows, n) {
-  var answered = {}, strays = [], seen = Object.create(null);
+  var answered = {}, strays = [], seen = Object.create(null), unknownIds = {};
   rows.forEach(function (r) {
     var k = keyOf_(r[COL.KEY - 1]);
     if (!k) return;
-    var row = rowOf_(inv, k);
+    var row = answerRow_(inv, k, r[COL.INV_ID - 1]);
     if (row) { answered[row] = true; return; }
     /* "Invitation name" is the same name uncut; the key column stops at 80. */
     var raw = keyOf_(r[COL.NAME - 1]) === k
       ? String(r[COL.NAME - 1]).replace(/\s+/g, ' ').trim()
       : normKey_(r[COL.KEY - 1]);
     if (!seen[k]) { seen[k] = true; strays.push(raw); }
+    if (r[COL.INV_ID - 1]) unknownIds[k] = true;
   });
 
   var byGuest = Object.create(null);
@@ -661,6 +708,7 @@ function adoptStrayAnswers_(inv, rows, n) {
 
   var claims = {}, report = { linked: [], unlinked: [] };
   strays.forEach(function (raw) {
+    if (unknownIds[keyOf_(raw)] || ambiguousName_(inv, raw)) { report.unlinked.push(raw); return; }
     var first = keyOf_(raw.split(/\s+&\s+/)[0]);
     var open  = (byGuest[first] || []).filter(function (r) { return !answered[r]; });
     if (!byGuest[first]) {
@@ -685,9 +733,8 @@ function rowsStartingWith_(inv, raw) {
   var k = keyOf_(raw);
   if (k.length < 8 || k.indexOf(' ') < 0) return [];
   var rows = [];
-  Object.keys(inv.cur).forEach(function (name) {
-    var row = inv.cur[name];
-    if (name.length > k.length && name.indexOf(k) === 0 && rows.indexOf(row) < 0) rows.push(row);
+  inv.current.forEach(function (entry) {
+    if (entry.name.length > k.length && entry.name.indexOf(k) === 0 && rows.indexOf(entry.row) < 0) rows.push(entry.row);
   });
   return rows;
 }
@@ -711,19 +758,31 @@ function mirrorOf_(r) {
  */
 function restampNumbers_() {
   var inv = invitationContext_(false);
-  var num = function (k) {
-    var row = rowOf_(inv, k);
+  var num = function (k, id) {
+    var row = answerRow_(inv, k, id);
     return row ? row - 1 : '';
   };
   var r = sheet_(RSVP_SHEET), n = r.getLastRow() - 1;
   if (n > 0) {
-    r.getRange(2, COL.INVNO, n, 1).setValues(
-      r.getRange(2, COL.KEY, n, 1).getValues().map(function (x) { return [num(x[0])]; }));
+    var replies = r.getRange(2, 1, n, HEADERS.length).getValues();
+    r.getRange(2, COL.INVNO, n, 1).setValues(replies.map(function (x) {
+      return [num(x[COL.KEY - 1], x[COL.INV_ID - 1])];
+    }));
+    r.getRange(2, COL.INV_ID, n, 1).setValues(replies.map(function (x) {
+      var row = answerRow_(inv, x[COL.KEY - 1], x[COL.INV_ID - 1]);
+      return [x[COL.INV_ID - 1] || (row ? inv.rowIds[row] : '')];
+    }));
   }
   var g = sheet_(GLIST_SHEET), m = g.getLastRow() - 1;
   if (m > 0) {
-    g.getRange(2, GLCOL.INVNO, m, 1).setValues(
-      g.getRange(2, GLCOL.INVNAME, m, 1).getValues().map(function (x) { return [num(x[0])]; }));
+    var guests = g.getRange(2, 1, m, GLHEADERS.length).getValues();
+    g.getRange(2, GLCOL.INVNO, m, 1).setValues(guests.map(function (x) {
+      return [num(x[GLCOL.INVNAME - 1], x[GLCOL.INV_ID - 1])];
+    }));
+    g.getRange(2, GLCOL.INV_ID, m, 1).setValues(guests.map(function (x) {
+      var row = answerRow_(inv, x[GLCOL.INVNAME - 1], x[GLCOL.INV_ID - 1]);
+      return [x[GLCOL.INV_ID - 1] || (row ? inv.rowIds[row] : '')];
+    }));
   }
 }
 
@@ -829,68 +888,84 @@ function doPost(e) {
   var p;
   try { p = JSON.parse(e.postData.contents); } catch (err) { p = null; }
   if (!p || typeof p !== 'object') p = (e && e.parameter) || {};
-  if (p.hp) return json_({ ok: true });                 // honeypot → silently ignore bots
-
-  /* Apps Script runs concurrent posts in parallel, and the writers below are
-     read-modify-write: syncGuestList_ rewrites a whole block, writeAnswer_
-     chooses between updating a row and appending one. Two guests submitting in
-     the same second could drop each other's names or double-append — and
-     every link goes out at once, which is exactly when that happens. */
+  /* Keep answer writes serialized, but do not let opening logs wait in the
+     same queue for 30 seconds. A busy reply is retryable, not a lost RSVP. */
   var lock = LockService.getScriptLock();
-  try { lock.waitLock(30000); }
-  catch (err) { return json_({ ok: false, error: 'busy' }); }
-
+  var acquired = false, result;
+  try { acquired = lock.tryLock(p.action === 'open' ? 1 : 5000); } catch (err) {}
+  if (!acquired) {
+    result = { ok: false, error: 'busy', retryable: true };
+    logSaveError_(p, result);
+    return json_(result);
+  }
   try {
-    if (p.action === 'rsvp')    return json_(handleRsvp_(p));
-    if (p.action === 'details') return json_(handleDetails_(p));
-    if (p.action === 'open')    return json_(handleOpen_(p));
-    return json_({ ok: false, error: 'unknown_action' });
+    if (requestSeen_(p)) result = { ok: true, duplicate: true };
+    else if (p.action === 'rsvp') result = handleRsvp_(p);
+    else if (p.action === 'details') result = handleDetails_(p);
+    else if (p.action === 'open') result = handleOpen_(p);
+    else result = { ok: false, error: 'unknown_action' };
+    // Commit before releasing the lock or acknowledging a retry.
+    SpreadsheetApp.flush();
+    if (result.ok) rememberRequest_(p);
   } catch (err) {
-    return json_({ ok: false, error: String(err).slice(0, 140) });
+    result = { ok: false, error: String(err).slice(0, 140), retryable: true };
   } finally {
     lock.releaseLock();
   }
+  if (!result.ok) logSaveError_(p, result);
+  return json_(result);
 }
 
 function handleRsvp_(p) {
-  var key = normKey_(p.key || p.name);
-  if (!key) return { ok: false, error: 'key_required' };
-  if (!dietSchemaReady_() || !welcomeDinnerSchemaReady_()) return { ok: false, error: 'setup_required' };
+  if (!dietSchemaReady_() || !welcomeDinnerSchemaReady_() || !saveSchemaReady_()) return { ok: false, error: 'setup_required' };
+  if (!/^(yes|attend|true|no|decline|false)$/i.test(String(p.attending)))
+    return { ok: false, error: 'attendance_required' };
+  var inv = invitationContext_(false), identity = resolveInvitation_(inv, p);
+  if (!identity.row) return { ok: false, error: identity.error };
+  var key = identity.key;
 
   var a = answerFrom_(p, key, false);
+  a.name = identity.name; a.invNo = identity.row - 1; a.invId = identity.id;
+  a.requestId = saveId_(p.requestId);
+  if (a.yes && (a.pax > inv.seats[identity.row] || a.guests.length > inv.seats[identity.row]))
+    return { ok: false, error: 'too_many_guests' };
   if (String(p.partial) !== 'true' && a.welcomeDinner !== null &&
       a.welcomeDinner.some(function (v) { return !v; })) {
     return { ok: false, error: 'welcome_dinner_required' };
   }
   /* One read of the Invitation tab gives every name each invitation answers
      to, so an answer under a name the row no longer has still finds it. */
-  var inv = invitationContext_(false);
-  var invRow = rowOf_(inv, key);
-  a.invNo = invRow ? invRow - 1 : '';
+  var invRow = identity.row;
 
   var sheet = sheet_(RSVP_SHEET);
-  var w = writeAnswer_(sheet, findRsvpRow_(sheet, key, inv), a);
-
-  if (invRow) {
-    writeMirror_(invRow, w.values);
-    rememberName_(inv, invRow, p.key || p.name);
-  }
+  var row = findRsvpRow_(sheet, key, inv, identity.id);
+  if (saveAlreadyDone_(sheet, row, a.requestId)) return { ok: true, duplicate: true };
+  // Resolve and retain a shortened legacy name BEFORE syncing aliases.
+  rememberName_(inv, invRow, key);
+  var w = writeAnswer_(sheet, row, a);
   // An old copy of the page sends no names; keep what an earlier answer gave.
   if (a.guests.length || !a.yes) {
-    var aligned = syncGuestList_(a.invNo, key, a.guests, a.diets, a.welcomeDinner, inv);
+    var aligned = syncGuestList_(a.invNo, key, a.guests, a.diets, a.welcomeDinner, inv, a.invId);
     if (a.yes && a.diets === null) sheet.getRange(w.row, COL.DIETS).setValue(aligned.diets.join('\n'));
     if (a.yes && a.welcomeDinner === null) sheet.getRange(w.row, COL.WELCOME).setValue(aligned.welcomeDinner.join('\n'));
   }
+  writeMirror_(invRow, w.values);
+  acknowledgeSave_(sheet, w.row, a);
   CacheService.getScriptCache().remove('wishes');
   return { ok: true, stage2: a.yes };
 }
 
 function handleDetails_(p) {
-  var key = normKey_(p.key || p.name);
-  if (!key) return { ok: false, error: 'key_required' };
-  if (!dietSchemaReady_() || !welcomeDinnerSchemaReady_()) return { ok: false, error: 'setup_required' };
+  if (!dietSchemaReady_() || !welcomeDinnerSchemaReady_() || !saveSchemaReady_()) return { ok: false, error: 'setup_required' };
+  var inv = invitationContext_(false), identity = resolveInvitation_(inv, p);
+  if (!identity.row) return { ok: false, error: identity.error };
+  var key = identity.key;
 
   var a = answerFrom_(p, key, true);
+  a.name = identity.name; a.invNo = identity.row - 1; a.invId = identity.id;
+  a.requestId = saveId_(p.requestId);
+  if (a.pax > inv.seats[identity.row] || a.guests.length > inv.seats[identity.row])
+    return { ok: false, error: 'too_many_guests' };
   if (a.welcomeDinner !== null && a.welcomeDinner.some(function (v) { return !v; })) {
     return { ok: false, error: 'welcome_dinner_required' };
   }
@@ -913,18 +988,18 @@ function handleDetails_(p) {
     arrival += ' ' + ('0' + hour).slice(-2) + ':00';   // 24h, minutes always :00
   }
 
-  var inv = invitationContext_(false);
-  var invRow = rowOf_(inv, key);
+  var invRow = identity.row;
   var sheet = sheet_(RSVP_SHEET);
-  var row = findRsvpRow_(sheet, key, inv);
+  var row = findRsvpRow_(sheet, key, inv, identity.id);
+  if (saveAlreadyDone_(sheet, row, a.requestId)) return { ok: true, duplicate: true };
+  rememberName_(inv, invRow, key);
   if (!row || sheet.getRange(row, COL.ATTENDING).getValue() !== 'Yes' || a.guests.length) {
     /* The final form carries the full answer, including welcome dinner, so
        a lost first post can also recover an EDIT to an existing Yes row.
        Older details posts with no guest names keep the earlier answer. */
-    a.invNo = invRow ? invRow - 1 : '';
     row = writeAnswer_(sheet, row, a).row;
     if (a.guests.length) {
-      var aligned = syncGuestList_(a.invNo, key, a.guests, a.diets, a.welcomeDinner, inv);
+      var aligned = syncGuestList_(a.invNo, key, a.guests, a.diets, a.welcomeDinner, inv, a.invId);
       if (a.diets === null) sheet.getRange(row, COL.DIETS).setValue(aligned.diets.join('\n'));
       if (a.welcomeDinner === null) sheet.getRange(row, COL.WELCOME).setValue(aligned.welcomeDinner.join('\n'));
     }
@@ -932,11 +1007,59 @@ function handleDetails_(p) {
   }
 
   sheet.getRange(row, COL.ACCOM, 1, 4).setValues([[accom, nights, arrival, new Date()]]);
-  if (invRow) {
-    writeMirror_(invRow, sheet.getRange(row, 1, 1, HEADERS.length).getValues()[0]);
-    rememberName_(inv, invRow, p.key || p.name);
-  }
+  writeMirror_(invRow, sheet.getRange(row, 1, 1, HEADERS.length).getValues()[0]);
+  acknowledgeSave_(sheet, row, a);
   return { ok: true };
+}
+
+function saveSchemaReady_() {
+  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RSVP_SHEET);
+  if (!s) return false;
+  var h = s.getRange(1, COL.INV_ID, 1, 3).getValues()[0];
+  var g = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(GLIST_SHEET);
+  return h[0] === HEADERS[COL.INV_ID - 1] && h[1] === HEADERS[COL.SAVE_ID - 1] &&
+    h[2] === HEADERS[COL.SAVE_HISTORY - 1] && !!g &&
+    g.getRange(1, GLCOL.INV_ID).getValue() === GLHEADERS[GLCOL.INV_ID - 1];
+}
+
+function saveAlreadyDone_(s, row, id) {
+  if (!row || !id) return false;
+  var v = s.getRange(row, COL.SAVE_ID, 1, 2).getValues()[0];
+  return v[0] === id || String(v[1] || '').split('\n').indexOf(id) >= 0;
+}
+function acknowledgeSave_(s, row, a) {
+  var history = String(s.getRange(row, COL.SAVE_HISTORY).getValue() || '').split('\n').filter(String);
+  if (a.requestId && history.indexOf(a.requestId) < 0) history.push(a.requestId);
+  s.getRange(row, COL.INV_ID, 1, 3).setValues([[a.invId, a.requestId, history.slice(-40).join('\n')]]);
+}
+
+function saveId_(id) {
+  id = String(id || '');
+  return /^[a-zA-Z0-9_-]{8,80}$/.test(id) ? id : '';
+}
+
+/** Retries of an already committed request cannot overwrite a later edit.
+ * The row's Last save ID is also a persistent acknowledgement for read-back. */
+function requestSeen_(p) {
+  var id = saveId_(p.requestId);
+  return !!id && CacheService.getScriptCache().get('save:' + id) === requestIdentity_(p);
+}
+function requestIdentity_(p) {
+  return String(p.action) + '|' + String(p.id || normKey_(p.key || p.name));
+}
+function rememberRequest_(p) {
+  var id = saveId_(p.requestId);
+  if (id) CacheService.getScriptCache().put('save:' + id, requestIdentity_(p), 3600);
+}
+function logSaveError_(p, result) {
+  if (p.action !== 'rsvp' && p.action !== 'details') return;
+  try {
+    var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SAVE_LOG_SHEET);
+    if (s) s.appendRow([wib_(new Date()), safeText_(p.action),
+      safeText_(clean_(p.key || p.name, 120)), safeText_(clean_(p.id, 80)),
+      safeText_(saveId_(p.requestId)), p.action === 'details' ? 'Yes' : safeText_(clean_(p.attending, 10)),
+      p.attending === 'no' ? 0 : parseInt(p.pax, 10) || '', safeText_(result.error), !!result.retryable]);
+  } catch (err) {}
 }
 
 /** The answer a post carries, cleaned. `forceYes` for a details post. */
@@ -1020,6 +1143,10 @@ function writeAnswer_(sheet, row, a) {
   var v;
   if (row) {
     v = sheet.getRange(row, 1, 1, HEADERS.length).getValues()[0];
+    // Hotel values remain available as defaults, but changing from a decline
+    // to attendance (or changing the party size) needs final confirmation.
+    if (a.yes && (v[COL.ATTENDING - 1] !== 'Yes' || Number(v[COL.PAX - 1]) !== a.pax))
+      v[COL.DETAILS_AT - 1] = '';
     v[COL.TIME - 1] = new Date();
     v[COL.KEY - 1] = a.key;
     v[COL.NAME - 1] = a.name;
@@ -1031,6 +1158,8 @@ function writeAnswer_(sheet, row, a) {
     }
     v[COL.APPROVED - 1] = v[COL.APPROVED - 1] === true;
     v[COL.INVNO - 1] = a.invNo;
+    v[COL.INV_ID - 1] = a.invId || '';
+    v[COL.SAVE_ID - 1] = ''; // acknowledged only after every dependent write succeeds
     if (a.guests.length || !a.yes) v[COL.GUESTS - 1] = a.guests.join('\n');
     if (a.diets !== null) v[COL.DIETS - 1] = a.diets.join('\n');
     if (a.welcomeDinner !== null) v[COL.WELCOME - 1] = a.welcomeDinner.join('\n');
@@ -1038,7 +1167,7 @@ function writeAnswer_(sheet, row, a) {
   } else {
     v = [new Date(), a.key, a.name, a.yes ? 'Yes' : 'No', a.pax, a.wishes, false,
          '', '', '', '', a.invNo, a.guests.join('\n'), a.diets === null ? '' : a.diets.join('\n'),
-         a.welcomeDinner === null ? '' : a.welcomeDinner.join('\n')];
+         a.welcomeDinner === null ? '' : a.welcomeDinner.join('\n'), a.invId || '', '', ''];
     row = appendRsvpRow_(sheet, v);
   }
   return { row: row, values: v };
@@ -1054,29 +1183,34 @@ function appendRsvpRow_(sheet, v) {
 
 /**
  * Replaces this invitation's rows in the Guest List with the names just
- * submitted — matched by invitation NAME, never by number: this name, or any
- * other name of the same Invitation row (Link names), so rows written under
- * an older name are replaced too. The block stays where it was, and every
- * column beyond the standard seven (a Table or Room column you add)
+ * submitted — matched by Invitation ID, with names/Link names for old rows
+ * that have no ID yet. The block stays where it was, and every
+ * column beyond the standard eight (a Table or Room column you add)
  * travels with its person: same name first, else the same position, so a
  * corrected spelling keeps its table. Someone who switches from yes to no
  * drops off the list.
  */
-function syncGuestList_(invNo, invKey, names, diets, welcomeDinner, inv) {
+function syncGuestList_(invNo, invKey, names, diets, welcomeDinner, inv, invId) {
   var s = sheet_(GLIST_SHEET);
   var last = s.getLastRow();
   var width = Math.max(s.getLastColumn(), GLHEADERS.length);
   var rows = last > 1 ? s.getRange(2, 1, last - 1, width).getValues() : [];
-  var want = keyOf_(invKey);
-  var myRow = rowOf_(inv, invKey);
+  var myRow = invId ? inv.ids[invId] || 0 : rowOf_(inv, invKey);
+  invId = invId || (myRow && inv.rowIds[myRow]) || '';
 
   var before = [], mine = [], after = [];
   rows.forEach(function (r) {
     if (!r.some(hasData_)) return;                               // drop blank rows
     var theirs = r[GLCOL.INVNAME - 1];
-    if (keyOf_(theirs) === want || (myRow && rowOf_(inv, theirs) === myRow)) mine.push(r);
+    var same = r[GLCOL.INV_ID - 1]
+      ? !!invId && r[GLCOL.INV_ID - 1] === invId
+      : !!myRow && resolveInvitation_(inv, { key: theirs }).row === myRow;
+    if (same) mine.push(r);
     else (mine.length ? after : before).push(r);
   });
+  // A decline with no existing attendees needs no rewrite of everyone else's
+  // Guest List. Avoid several slow Sheet calls inside the RSVP lock.
+  if (!names.length && !mine.length) return { diets: [], welcomeDinner: [] };
 
   var now = wib_(new Date());
   var used = [];
@@ -1089,7 +1223,7 @@ function syncGuestList_(invNo, invKey, names, diets, welcomeDinner, inv) {
     if (from >= 0) used[from] = true;
     var diet = diets === null ? (from >= 0 ? mine[from][GLCOL.DIET - 1] : '') : diets[i];
     var dinner = welcomeDinner === null ? (from >= 0 ? mine[from][GLCOL.WELCOME - 1] : '') : welcomeDinner[i];
-    var row = ['', n, invNo, invKey, now, diet || '', dinner || ''];
+    var row = ['', n, invNo, invKey, now, diet || '', dinner || '', invId];
     for (j = GLHEADERS.length; j < width; j++) row.push(from >= 0 ? mine[from][j] : '');
     return row;
   });
@@ -1112,11 +1246,9 @@ function numberGuestList_(rows) {
 }
 
 function handleOpen_(p) {
-  var key = normKey_(p.key);
-  if (!key) return { ok: false, error: 'key_required' };
-
   var inv = invitationContext_(false);
-  var row = rowOf_(inv, key);
+  var identity = resolveInvitation_(inv, p);
+  var row = identity.row, key = identity.key || normKey_(p.key);
 
   /* Logged BEFORE the no-match return: a visit under a name that matches no
      invitation is exactly the one worth seeing. */
@@ -1141,7 +1273,7 @@ function handleOpen_(p) {
   s.getRange(row, ICOL.STATUS, 1, span).setValues([v]);
   /* The link this guest actually holds, proven by their opening it. Kept so
      that renaming the row afterwards cannot detach their answer. */
-  rememberName_(inv, row, p.key);
+  rememberName_(inv, row, key);
   return { ok: true, tracked: true };
 }
 
@@ -1230,11 +1362,13 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   try {
     if (p.action === 'wishes') return json_(getWishes_());
-    if (p.action === 'status') return json_(getStatus_(p.key));
+    if (p.action === 'status') return json_(getStatus_(p.key, p.id));
     if (p.action === 'features') return json_({ ok: true, dietaryChoices: dietSchemaReady_(),
                                                customArrangements: dietSchemaReady_(),
                                                welcomeDinnerRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_(),
-                                               partialRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_() });
+                                               partialRsvp: dietSchemaReady_() && welcomeDinnerSchemaReady_(),
+                                               invitationIds: saveSchemaReady_(),
+                                               saveAcknowledgements: saveSchemaReady_() });
     return json_({ ok: true, service: 'jv-rsvp' });
   } catch (err) {
     return json_({ ok: false, error: String(err).slice(0, 140) });
@@ -1266,25 +1400,25 @@ function getWishes_() {
   return payload;
 }
 
-function getStatus_(rawKey) {
+function getStatus_(rawKey, id) {
   var key = normKey_(rawKey);
-  if (!key) return { ok: true, found: false };
+  var inv = invitationContext_(false);
+  var identity = resolveInvitation_(inv, { key: rawKey, id: id });
+  var invite = identity.row ? {
+    id: identity.id, name: identity.name,
+    maxGuests: inv.seats[identity.row], holyMatrimony: inv.holy[identity.row]
+  } : null;
+  if (!identity.row) return { ok: true, found: false, invitationError: identity.error };
   var sheet = sheet_(RSVP_SHEET);
-  var row = findRsvpRow_(sheet, key, null);
-  if (!row) {
-    /* Not under this exact name — it may have been answered under another
-       name of the same invitation (a link re-sent after a rename). Only looked
-       for on a miss, so an ordinary lookup costs no extra reads. */
-    try { row = findRsvpRow_(sheet, key, invitationContext_(false)); }
-    catch (err) { row = 0; }
-  }
-  if (!row) return { ok: true, found: false };
+  var row = findRsvpRow_(sheet, identity.key || key, inv, identity.id);
+  if (!row) return { ok: true, found: false, invite: invite, invitationError: identity.error };
 
   var v = sheet.getRange(row, 1, 1, HEADERS.length).getDisplayValues()[0];
   var accomCode = '';
   for (var c in ACCOM_LABELS) if (ACCOM_LABELS[c] === v[COL.ACCOM - 1]) accomCode = c;
   return {
     ok: true, found: true,
+    invite: invite, requestId: v[COL.SAVE_ID - 1],
     name: v[COL.NAME - 1],
     invitation: v[COL.INVNO - 1],
     attending: v[COL.ATTENDING - 1],
@@ -1402,25 +1536,37 @@ function ensureSize_(s, rows, cols) {
  */
 function invitationContext_(create, s) {
   s = s || SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INV_SHEET);
-  var inv = { s: s, col: 0, cur: Object.create(null), alias: Object.create(null), lists: {} };
+  var inv = { s: s, col: 0, cur: Object.create(null), alias: Object.create(null), lists: {},
+              ids: Object.create(null), rowIds: {}, names: {}, seats: {}, holy: {}, current: [],
+              ambiguous: Object.create(null) };
   if (!s) return inv;
   inv.col = linkNamesCol_(s, create);
+  var head = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  var idCol = head.indexOf(INV_ID_HEADER) + 1;
   var n = s.getLastRow() - 1;
   if (n < 1) return inv;
-  var who = s.getRange(2, ICOL.NAME, n, 2).getValues();
-  var ali = inv.col ? s.getRange(2, inv.col, n, 1).getValues() : null;
+  var width = Math.max(ICOL.HOLMAT, inv.col, idCol);
+  var rows = s.getRange(2, 1, n, width).getValues();
 
   for (var i = 0; i < n; i++) {
     /* A row with no Guest name is skipped: a cleared row must not keep
        collecting answers through its old names. */
-    var cur = currentName_(who[i][0], who[i][1]);
+    var cur = currentName_(rows[i][ICOL.NAME - 1], rows[i][ICOL.COMPANION - 1]);
     if (!cur) continue;
     var row = i + 2, k = keyOf_(cur);
-    if (!(k in inv.cur)) inv.cur[k] = row;
-    inv.lists[row] = ali ? splitNames_(ali[i][0]) : [];
+    if (k in inv.cur && inv.cur[k] !== row) inv.ambiguous[k] = true;
+    else inv.cur[k] = row;
+    inv.current.push({ name: k, row: row });
+    inv.names[row] = cur;
+    inv.seats[row] = Math.max(1, Math.min(20, parseInt(rows[i][ICOL.SEATS - 1], 10) || 2));
+    inv.holy[row] = rows[i][ICOL.HOLMAT - 1] === true;
+    var id = idCol ? String(rows[i][idCol - 1] || '') : '';
+    inv.rowIds[row] = id;
+    if (id) inv.ids[id] = id in inv.ids ? 0 : row; // duplicated IDs must not claim another guest
+    inv.lists[row] = inv.col ? splitNames_(rows[i][inv.col - 1]) : [];
     inv.lists[row].forEach(function (a) {
       var ak = keyOf_(a);
-      if (ak && !(ak in inv.alias)) inv.alias[ak] = row;
+      if (ak) inv.alias[ak] = ak in inv.alias && inv.alias[ak] !== row ? 0 : row;
     });
   }
   return inv;
@@ -1428,15 +1574,41 @@ function invitationContext_(create, s) {
 
 /**
  * The Invitation row this name belongs to, or 0. A row's CURRENT name wins
- * over any row's older name, and between two rows claiming the same name the
- * upper one wins — the first-match rule the lookup always had.
+ * over any row's older name. Duplicate current names or aliases are refused.
  */
 function rowOf_(inv, name) {
   var k = keyOf_(name);
   if (!k || !inv) return 0;
-  if (k in inv.cur) return inv.cur[k];
+  if (k in inv.cur) return inv.ambiguous[k] ? 0 : inv.cur[k];
   if (k in inv.alias) return inv.alias[k];
   return 0;
+}
+function answerRow_(inv, name, id) {
+  return id ? inv.ids[String(id)] || 0 : rowOf_(inv, name);
+}
+function ambiguousName_(inv, name) {
+  var k = keyOf_(name);
+  return !!inv.ambiguous[k] || (!(k in inv.cur) && k in inv.alias && !inv.alias[k]);
+}
+
+/** A missing/ambiguous identity is refused rather than saved as an orphan.
+ * Old name links remain valid; a sufficiently long, unique truncated name
+ * is attached immediately instead of waiting for refreshLinks(). */
+function resolveInvitation_(inv, p) {
+  var raw = normKey_(p.key || p.name), row = 0, error = 'invitation_not_found';
+  if (p.id) row = inv.ids[String(p.id)] || 0;
+  else if (ambiguousName_(inv, raw)) error = 'invitation_ambiguous';
+  else {
+    row = rowOf_(inv, raw);
+    if (!row) {
+      var matches = rowsStartingWith_(inv, raw);
+      if (matches.length === 1) row = matches[0];
+      else if (matches.length > 1) error = 'invitation_ambiguous';
+    }
+  }
+  if (!row) return { row: 0, error: error, key: raw, id: '' };
+  return { row: row, error: '', key: !raw || raw === String(p.id) ? normKey_(inv.names[row]) : raw,
+           name: clean_(inv.names[row], 120), id: inv.rowIds[row] || '' };
 }
 
 /**
@@ -1467,10 +1639,12 @@ function rememberName_(inv, row, name) {
     var list = inv.lists[row] || [];
     var clean = clean_(name, 120).replace(/\s+/g, ' ');
     if (!clean || hasName_(list, clean)) return;
+    var owner = rowOf_(inv, clean);
+    if (owner && owner !== row) return;
     list = list.concat([clean]);
     inv.lists[row] = list;
     var k = keyOf_(clean);
-    if (!(k in inv.alias)) inv.alias[k] = row;
+    inv.alias[k] = k in inv.alias && inv.alias[k] !== row ? 0 : row;
     inv.s.getRange(row, inv.col).setValue(list.join('\n'));
   } catch (err) { /* bookkeeping only — never fail a guest's request over it */ }
 }
@@ -1535,11 +1709,9 @@ function onEdit(e) {
   } catch (err) { /* never block an edit */ }
 }
 
-/** Writes one invitation's Status..Nights from its RSVP row. Never fatal. */
+/** A save is acknowledged only after the invitation mirror also succeeds. */
 function writeMirror_(invRow, rsvpRow) {
-  try {
-    sheet_(INV_SHEET).getRange(invRow, ICOL.STATUS, 1, 4).setValues([mirrorOf_(rsvpRow)]);
-  } catch (err) { /* never lose a response over a bookkeeping write */ }
+  sheet_(INV_SHEET).getRange(invRow, ICOL.STATUS, 1, 4).setValues([mirrorOf_(rsvpRow)]);
 }
 
 /**
@@ -1549,23 +1721,22 @@ function writeMirror_(invRow, rsvpRow) {
  * answer and edits it, instead of adding a second response that the Dashboard
  * would count twice. If several did, the most recent.
  */
-function findRsvpRow_(sheet, key, inv) {
+function findRsvpRow_(sheet, key, inv, id) {
   var last = sheet.getLastRow();
   if (last < 2) return 0;
   var n = last - 1;
-  var keys = sheet.getRange(2, COL.KEY, n, 1).getValues();
+  var rows = sheet.getRange(2, 1, n, HEADERS.length).getValues();
   var want = keyOf_(key);
-  for (var i = 0; i < n; i++) {
-    if (keyOf_(keys[i][0]) === want) return i + 2;
-  }
-  var mine = inv ? rowOf_(inv, key) : 0;
-  if (!mine) return 0;
-
-  var times = sheet.getRange(2, COL.TIME, n, 1).getValues();
+  var mine = inv ? resolveInvitation_(inv, { key: key, id: id }).row : 0;
   var best = 0, bestT = -1;
   for (var j = 0; j < n; j++) {
-    if (rowOf_(inv, keys[j][0]) !== mine) continue;
-    var t = timeOf_(times[j][0]);
+    var theirs = rows[j][COL.KEY - 1];
+    var storedId = rows[j][COL.INV_ID - 1];
+    if (id && storedId && storedId !== id) continue;
+    var owner = inv ? resolveInvitation_(inv, { key: theirs, id: storedId }).row : 0;
+    if (!(id && storedId === id) && !(mine && owner === mine) &&
+        !(!inv && want && keyOf_(theirs) === want)) continue;
+    var t = timeOf_(rows[j][COL.TIME - 1]);
     if (t >= bestT) { best = j + 2; bestT = t; }
   }
   return best;

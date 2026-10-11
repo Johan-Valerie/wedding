@@ -34,12 +34,15 @@
 
   /* ── personalization: ?to= & &max= ───────────────────────── */
   var params = new URLSearchParams(window.location.search);
+  var invitationId = params.get('id') || '';
   var guest = params.get('to');
   var guestKey = '';
+  var linkGuestKey = '';
   if (guest) {
     var decoded;
     try { decoded = decodeURIComponent(guest); } catch (e) { decoded = guest; }
     guestKey = decoded;
+    linkGuestKey = decoded;
     $$('.guest-name-slot').concat([$('#guest-name')]).forEach(function (el) {
       if (el) el.textContent = decoded;
     });
@@ -294,7 +297,8 @@
     }
     if (node.scrollWidth > avail) node.style.whiteSpace = 'normal';   // last resort
   }
-  (function renderIntroGuest() {
+  function renderIntroGuest() {
+    if (renderIntroGuest.fit) window.removeEventListener('resize', renderIntroGuest.fit);
     var el = $('#intro-guest');
     if (!el) return;
     el.textContent = '';
@@ -316,10 +320,13 @@
     };
     fit();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    renderIntroGuest.fit = fit;
     window.addEventListener('resize', fit);
-  })();
+  }
+  renderIntroGuest();
 
-  (function fitDearGuestName() {
+  function fitDearGuestName() {
+    if (fitDearGuestName.fit) window.removeEventListener('resize', fitDearGuestName.fit);
     var name = $('#dear .guest-name-slot');
     if (!name) return;
     var parts = name.textContent.split('&');
@@ -345,8 +352,10 @@
     }
     fit();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+    fitDearGuestName.fit = fit;
     window.addEventListener('resize', fit);
-  })();
+  }
+  fitDearGuestName();
 
   /* ── scroll reveals (the engagement's) ───────────────────── */
   /* Elements carry .reanimate + .fade + a .delayNms stagger. Adding .in-view
@@ -545,21 +554,25 @@
     a.setAttribute('target', '_blank');
     a.setAttribute('rel', 'noopener');
   }
-  $$('[data-calendar]').forEach(function (a) {
-    var key = a.getAttribute('data-calendar');
-    if (!onAndroid) { if (CALENDAR_FILES[key]) a.setAttribute('href', CALENDAR_FILES[key]); return; }
-    if (key === 'all') {
-      var day = (withHolyMatrimony ? ['ceremony', 'cocktail', 'reception'] : ['cocktail', 'reception'])
-        .map(function (k) { return EVENTS[k]; });
-      opensApart(a, googleCalendar('Wedding of Johan & Valerie', day[0].start, day[day.length - 1].end,
-        day.map(function (ev) {
-          return ev.title.split(' — ')[0] + ' — ' + bangkokClock(ev.start) + ', ' + ev.loc.split(' — ')[1];
-        }).join('\n'), 'La Chapelle Bangkok'));
-    } else if (EVENTS[key]) {
-      var ev = EVENTS[key];   // the welcome dinner: its time only, no end and no place
-      opensApart(a, googleCalendar(ev.title, ev.start, ev.end || ev.start, '', ev.loc));
-    }
-  });
+  function refreshCalendarLinks() {
+    CALENDAR_FILES.all = withHolyMatrimony ? 'assets/wedding-hm.ics' : 'assets/wedding.ics';
+    $$('[data-calendar]').forEach(function (a) {
+      var key = a.getAttribute('data-calendar');
+      if (!onAndroid) { if (CALENDAR_FILES[key]) a.setAttribute('href', CALENDAR_FILES[key]); return; }
+      if (key === 'all') {
+        var day = (withHolyMatrimony ? ['ceremony', 'cocktail', 'reception'] : ['cocktail', 'reception'])
+          .map(function (k) { return EVENTS[k]; });
+        opensApart(a, googleCalendar('Wedding of Johan & Valerie', day[0].start, day[day.length - 1].end,
+          day.map(function (ev) {
+            return ev.title.split(' — ')[0] + ' — ' + bangkokClock(ev.start) + ', ' + ev.loc.split(' — ')[1];
+          }).join('\n'), 'La Chapelle Bangkok'));
+      } else if (EVENTS[key]) {
+        var ev = EVENTS[key];   // the welcome dinner: its time only, no end and no place
+        opensApart(a, googleCalendar(ev.title, ev.start, ev.end || ev.start, '', ev.loc));
+      }
+    });
+  }
+  refreshCalendarLinks();
   /* the RSVP deadline reminder, a plain link to its own calendar file */
   if (onAndroid) $$('a[href$="rsvp-reminder.ics"]').forEach(function (a) {
     opensApart(a, googleCalendar('RSVP for Johan and Valerie’s wedding', '20261209', '20261210',
@@ -894,12 +907,30 @@
   var editSaveTimer;
   var saveQueue = Promise.resolve();
   var saveVersion = 0;
-  /* Apps Script takes one save at a time and lets each wait its turn for up
-     to 30s, then saves; so a save is given a minute, and from 12s on the page
-     also looks for it in the Sheet (see postResponse). */
-  var SAVE_TIMEOUT = 60000;
+  /* Busy saves retry with the same request ID. The longer deadline also
+     covers older deployments that still queue each attempt for 30 seconds. */
+  var SAVE_TIMEOUT = 120000;
   var SAVE_LOOK_AFTER = 12000;
-  var cacheKey = guestKey ? 'jv-wedding-response:' + guestKey : '';
+  var cacheKey = invitationId ? 'jv-wedding-response:id:' + invitationId
+    : guestKey ? 'jv-wedding-response:' + guestKey : '';
+  var pendingKey = cacheKey ? cacheKey + ':pending' : '';
+  var pendingSave = null;
+
+  function newSaveId() {
+    return 'web_' + Date.now().toString(36) + '_' +
+      Math.random().toString(36).slice(2) + '_' + Math.random().toString(36).slice(2);
+  }
+  function keepPendingSave(fields) {
+    pendingSave = fields;
+    if (pendingKey) {
+      try { localStorage.setItem(pendingKey, JSON.stringify(fields)); } catch (err) {}
+    }
+  }
+  function clearPendingSave(fields) {
+    if (!pendingSave || pendingSave.requestId !== fields.requestId) return;
+    pendingSave = null;
+    if (pendingKey) { try { localStorage.removeItem(pendingKey); } catch (err) {} }
+  }
 
   function saveNote(id, msg) {
     var note = $(id);
@@ -918,9 +949,14 @@
   }
   function rememberResponse(fields) {
     responseData = responseData || { ok: true, found: true, detailsDone: false };
+    if (fields.attending === 'yes' &&
+        (String(responseData.attending).toLowerCase() !== 'yes' || Number(responseData.pax) !== Number(fields.pax))) {
+      responseData.detailsDone = false;
+    }
     responseData.attending = fields.attending;
     responseData.pax = Number(fields.pax) || 0;
     responseData.wishes = fields.wishes;
+    responseData.requestId = fields.requestId;
     if (fields.guests) {
       savedNames = fields.guests.slice();
       responseData.guests = savedNames.slice();
@@ -947,24 +983,18 @@
       try { localStorage.setItem(cacheKey, JSON.stringify(responseData)); } catch (err) {}
     }
   }
-  /* Edits are sent in order and only marked saved after the sheet confirms
-     them. A later change cannot be overtaken by an older, slower request.
-     When many guests answer at once, a save can wait its turn so long that
-     it lands after its reply was given up on: a guest declined, the Sheet
-     has it, and her page said it couldn't save. So a slow or missing reply
-     is not taken as a no. The page also reads the answer back from the
-     Sheet (the status lookup waits for no one) and counts it saved once it
-     is there. Only the Sheet's own refusal, or a minute with neither, fails. */
+  /* Busy is a temporary refusal. Retry it and missing network replies with
+     the same ID; a committed retry cannot overwrite a later answer. Read
+     back the exact save, not merely an older answer with the same attendance. */
   function postResponse(fields) {
+    fields.requestId = fields.requestId || newSaveId();
     var body = Object.keys(fields).map(function (k) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(
         Array.isArray(fields[k]) ? JSON.stringify(fields[k]) : fields[k]);
     }).join('&');
     return new Promise(function (resolve, reject) {
-      var done = false, look;
-      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var done = false, look, retry, attemptTimer, controller, active = false, looking = false, attempts = 0;
       var deadline = setTimeout(function () {
-        if (controller) controller.abort();
         finish(new Error('save_timeout'));
       }, SAVE_TIMEOUT);
       function finish(err) {
@@ -972,45 +1002,88 @@
         done = true;
         clearTimeout(deadline);
         clearTimeout(look);
+        clearTimeout(retry);
+        clearTimeout(attemptTimer);
+        if (controller) controller.abort();
         if (err) reject(err); else resolve();
       }
       function lookInSheet() {
-        if (done) return;
+        if (done || looking) return;
+        looking = true;
         answerInSheet(fields).then(function (there) {
+          looking = false;
           if (there) finish();
-          else if (!done) look = setTimeout(lookInSheet, 4000);
+          else if (!done) look = setTimeout(lookInSheet, 6000);
         });
       }
       look = setTimeout(lookInSheet, SAVE_LOOK_AFTER);
-      var options = { method: 'POST', keepalive: true, body: body,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' } };
-      if (controller) options.signal = controller.signal;
-      fetch(API_URL, options).then(function (r) { return r.json(); }).then(function (d) {
-        finish(d && d.ok === true ? null : new Error(d && d.error || 'save_failed'));
-      }).catch(function () {
-        // No readable reply, which is not a no: keep looking in the Sheet.
+      function retryLater() {
+        if (done || retry) return;
+        retry = setTimeout(function () { retry = null; send(); },
+          Math.min(10000, 1000 * Math.pow(2, Math.min(attempts - 1, 4))) + Math.floor(Math.random() * 700));
+      }
+      function unsure() {
         if (done) return;
         clearTimeout(look);
         lookInSheet();
-      });
+        retryLater();
+      }
+      function send() {
+        if (done || active) return;
+        active = true;
+        var number = ++attempts;
+        controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var attemptController = controller;
+        var options = { method: 'POST', keepalive: true, body: body,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' } };
+        if (controller) options.signal = controller.signal;
+        // A lost connection must not hold the queue forever. The server can
+        // still finish, so every retry uses the original save ID.
+        attemptTimer = setTimeout(function () {
+          if (done || number !== attempts) return;
+          active = false;
+          if (attemptController) attemptController.abort();
+          unsure();
+        }, 40000);
+        fetch(API_URL, options).then(function (r) { return r.json(); }).then(function (d) {
+          if (done || number !== attempts) return;
+          clearTimeout(attemptTimer); active = false;
+          if (d && d.ok === true) finish();
+          else if (d && (d.error === 'busy' || d.retryable === true)) unsure();
+          else finish(new Error(d && d.error || 'save_failed'));
+        }).catch(function () {
+          if (done || number !== attempts) return;
+          clearTimeout(attemptTimer); active = false;
+          unsure();
+        });
+      }
+      send();
     });
   }
-  /* Whether the Sheet already holds this answer: the same attendance, the
-     same guest names when they were sent, and for the stay step the same
-     stay, nights and arrival, completed. */
+  /* A new backend acknowledges the exact request. Until it is deployed,
+     compare every supplied field, including pax, wishes, diet and dinner. */
   function answerInSheet(fields) {
-    return fetch(API_URL + '?action=status&key=' + encodeURIComponent(fields.key) + '&t=' + Date.now())
+    return fetch(API_URL + '?action=status&key=' + encodeURIComponent(fields.key) +
+      '&id=' + encodeURIComponent(fields.id || '') + '&t=' + Date.now())
       .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d || !d.found || String(d.attending).toLowerCase() !== String(fields.attending).toLowerCase()) return false;
-        if (fields.guests && !sameList(d.guests || [], fields.guests)) return false;
-        if (fields.action !== 'details') return true;
-        var hour = String(fields.arrivalHour == null ? '' : fields.arrivalHour);
-        var arrival = fields.arrival && /^([01]?\d|2[0-3])$/.test(hour)
-          ? fields.arrival + ' ' + ('0' + hour).slice(-2) + ':00' : (fields.arrival || '');
-        return !!d.detailsDone && d.accommodation === fields.accommodation &&
-          String(d.nights || '') === String(fields.nights || '') && String(d.arrival || '') === arrival;
-      }).catch(function () { return false; });
+      .then(function (d) { return savedFieldsMatch(d, fields); }).catch(function () { return false; });
+  }
+  function savedFieldsMatch(d, fields) {
+    if (!d || d.ok === false || !d.found) return false;
+    if (fields.requestId && Object.prototype.hasOwnProperty.call(d, 'requestId')) return d.requestId === fields.requestId;
+    if (String(d.attending).toLowerCase() !== String(fields.attending).toLowerCase()) return false;
+    if (fields.pax !== undefined && Number(d.pax) !== Number(fields.pax)) return false;
+    if (fields.replaceWishes && String(d.wishes || '') !== String(fields.wishes || '')) return false;
+    if (fields.guests && !sameList(d.guests || [], fields.guests)) return false;
+    var lower = function (list) { return list.map(function (v) { return String(v).toLowerCase(); }); };
+    if (fields.diets && !sameList(lower(d.diets || []), lower(fields.diets))) return false;
+    if (fields.welcomeDinner && !sameList(lower(d.welcomeDinner || []), lower(fields.welcomeDinner))) return false;
+    if (fields.action !== 'details') return true;
+    var hour = String(fields.arrivalHour == null ? '' : fields.arrivalHour);
+    var arrival = fields.arrival && /^([01]?\d|2[0-3])$/.test(hour)
+      ? fields.arrival + ' ' + ('0' + hour).slice(-2) + ':00' : (fields.arrival || '');
+    return !!d.detailsDone && d.accommodation === fields.accommodation &&
+      String(d.nights || '') === String(fields.nights || '') && String(d.arrival || '') === arrival;
   }
   function saveResponse(fields, noteId) {
     clearTimeout(editSaveTimer);
@@ -1019,6 +1092,8 @@
       return Promise.reject(new Error('wish_clear_unavailable'));
     }
     var version = ++saveVersion;
+    fields.requestId = fields.requestId || newSaveId();
+    keepPendingSave(fields);
     saveNote(noteId, 'Saving changes\u2026');
     // A long wait reads as a failure; say it is still going.
     var slow = setTimeout(function () {
@@ -1031,10 +1106,15 @@
       clearTimeout(slow);
     }).then(function () {
       rememberResponse(fields);
+      clearPendingSave(fields);
       if (fields.guests) confirmedAnswer = { guests: fields.guests, diets: fields.diets, welcomeDinner: fields.welcomeDinner };
       if (version === saveVersion) saveNote(noteId, editingResponse ? 'Changes saved.' : '');
     }).catch(function (err) {
-      if (version === saveVersion) saveNote(noteId, 'Couldn\u2019t save your changes. Please try again.');
+      if (version === saveVersion) saveNote(noteId,
+        /^invitation_/.test(err.message)
+          ? 'This invitation link is incomplete or cannot be identified. Please use the full link sent to you, or contact us for help.'
+          : err.message === 'too_many_guests' ? 'Please check the guest count against the seats in your invitation and try again.'
+          : 'Your response has not been confirmed. Your answers are kept on this device. Please try again.');
       throw err;
     });
     saveQueue = save;
@@ -1042,7 +1122,7 @@
   }
   function attendancePayload() {
     var yes = attendingYes();
-    return { action: 'rsvp', key: who(), name: who(), attending: yes ? 'yes' : 'no',
+    return { action: 'rsvp', id: invitationId, key: who(), name: who(), attending: yes ? 'yes' : 'no',
       pax: yes ? parseInt(guestsInput && guestsInput.value, 10) || 1 : 0,
       wishes: ($('#rsvp-wishes').value || '').trim(), replaceWishes: true };
   }
@@ -1139,7 +1219,7 @@
 
   function who() {
     var firstGuest = nameBox && $('.rsvp-guest', nameBox);
-    return guestKey || (firstGuest ? firstGuest.value.trim() : '');
+    return guestKey || invitationId || (firstGuest ? firstGuest.value.trim() : '');
   }
   function attendingYes() {
     var r = form && form.querySelector('input[name=attendance]:checked');
@@ -1340,7 +1420,6 @@
 
   if (form) form.addEventListener('submit', function (e) {
     e.preventDefault();
-    if ($('#rsvp-hp') && $('#rsvp-hp').value) return;
     var yes = attendingYes();
     if (yes && step2 && step2.hidden) { goNext(); return; }
     if (!who()) { rsvpNote('Please use your personal invitation link to RSVP.'); return; }
@@ -1456,7 +1535,7 @@
         showDetailsDone(fields.accommodation, responseData.arrival, fields.nights);
         scrollToSection(detailsSection);
       }).catch(function () {
-        saveNote('#details-note', 'Couldn\u2019t save your details. Please tap Complete RSVP to retry.');
+        saveNote('#details-note', 'Your response has not been confirmed. Your answers are kept on this device. Please tap Complete RSVP to retry.');
       }).finally(function () {
         setFormBusy(detailsForm, false);
         if (detailsBtn) { detailsBtn.textContent = DETAILS_LABEL; detailsBtn.disabled = false; }
@@ -1469,14 +1548,57 @@
      load with nobody there: a browser reloading an old tab, Chrome pre-loading
      a link from its history while an address is typed, an app building a link
      preview. Counted at load, each of those marked an invitation opened.
-     The whole link goes along: seats and Holy Matrimony live only in the link,
-     and a link sent before a change keeps showing the old page, so the Sheet
-     logs which one was opened. Older backends ignore the extra field. */
+     The whole link goes along so the Sheet can identify an older link.
+     Current invitation settings come from the status lookup when available.
+     Older backends ignore the extra fields. */
+  var openSaveId = '';
   function countOpen() {
-    if (!API_URL || !guestKey) return;
-    try {
-      sendApi({ action: 'open', key: guestKey, link: location.href.split('#')[0] }).catch(function () {});
-    } catch (e) {}
+    if (!API_URL || (!guestKey && !invitationId)) return;
+    var attempts = 0, waiting = false;
+    openSaveId = openSaveId || newSaveId();
+    var fields = { action: 'open', key: linkGuestKey || guestKey, id: invitationId,
+      requestId: openSaveId, link: location.href.split('#')[0] };
+    function retryBusy(error) {
+      if (error !== 'busy' || waiting || attempts >= 4) return;
+      waiting = true;
+      // Give actual RSVP answers a turn before trying an opening log again.
+      setTimeout(function () { waiting = false; send(); }, 10000 + Math.random() * 8000);
+    }
+    function send() {
+      attempts++;
+      sendApi(fields, { refused: retryBusy }).catch(function (err) { retryBusy(err.message); });
+    }
+    try { send(); } catch (e) {}
+  }
+
+  function applyInvitation(info) {
+    if (!info) return;
+    if (info.id) invitationId = info.id;
+    if (info.name && info.name !== guestKey) {
+      guestKey = info.name;
+      invitationNames = guestKey.split(/\s+&\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      $$('.guest-name-slot').concat([$('#guest-name')]).forEach(function (el) {
+        if (el) el.textContent = guestKey;
+      });
+      renderIntroGuest();
+      fitDearGuestName();
+    }
+    if (guestsInput && info.maxGuests) {
+      guestsInput.max = info.maxGuests;
+      var label = $('#guest-count-label');
+      if (label) label.textContent = 'No of Guest (Max ' + info.maxGuests + ')';
+      if (!touched) guestsInput.value = Math.min(invitationNames.length || 1, info.maxGuests);
+    }
+    if (typeof info.holyMatrimony === 'boolean') {
+      withHolyMatrimony = info.holyMatrimony;
+      ['#event-holmat', '#holmat-divider'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.hidden = !withHolyMatrimony;
+      });
+      var events = $('#events');
+      if (events) events.classList.toggle('three', withHolyMatrimony);
+      refreshCalendarLinks();
+    }
   }
 
   /* Returning guests see the information and All Set pages; the deadline
@@ -1521,15 +1643,62 @@
   var cachedResponse;
   if (cacheKey) {
     try { cachedResponse = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (err) {}
-    restoreResponse(cachedResponse);
   }
-  if (API_URL && guestKey) {
-    if (!cachedResponse && rsvpSection) rsvpSection.hidden = true;
-    fetch(API_URL + '?action=status&key=' + encodeURIComponent(guestKey))
+  if (pendingKey) {
+    try { pendingSave = JSON.parse(localStorage.getItem(pendingKey) || 'null'); } catch (err) {}
+  }
+  function restorePendingResponse() {
+    var p = pendingSave;
+    if (!p || (p.action !== 'rsvp' && p.action !== 'details')) return;
+    var radio = $('input[name=attendance][value="' + (p.attending === 'yes' ? 'yes' : 'no') + '"]', form);
+    if (radio) radio.checked = true;
+    if ($('#rsvp-wishes')) $('#rsvp-wishes').value = p.wishes || '';
+    var prior = cachedResponse || {};
+    savedNames = p.guests || prior.guests || [];
+    savedDiets = p.diets || prior.diets || [];
+    savedWelcomeDinner = p.welcomeDinner || prior.welcomeDinner || [];
+    // A decline has zero attending guests, not a one-person invitation.
+    // Keep the invitation's default party size available if they change to Yes.
+    var draftCount = Number(p.pax) || Number(prior.pax) || invitationNames.length || 1;
+    if (guestsInput) guestsInput.value = Math.max(1, Math.min(draftCount, Number(guestsInput.max) || 20));
+    syncAttendance();
+    buildGuestFields(Number(guestsInput && guestsInput.value) || 1, true);
+    if (p.action === 'details') {
+      $$('input[name=accommodation]', detailsForm).forEach(function (el) { el.checked = el.value === p.accommodation; });
+      syncNightsRow();
+      if (nightsSel && p.nights) nightsSel.value = String(p.nights);
+      setArrivalDate(p.arrival || '', false);
+      var hour = $('#details-arrival-hour');
+      if (hour) hour.value = p.arrivalHour || '';
+    }
+    // A pending decline is not All Set. Keep the form visible for a retry
+    // even when an earlier, completed answer is cached on this phone.
+    if (rsvpSection) rsvpSection.hidden = false;
+    if (infoSection) infoSection.hidden = true;
+    if (detailsSection) detailsSection.hidden = true;
+    editingResponse = !!prior.found;
+    responseData = prior.found ? prior : null;
+    var nav = $('#nav-menu a[data-rsvp-link]');
+    if (nav) nav.setAttribute('href', '#rsvp');
+    resetButtons(); showStep(1);
+    reopenDetails('Please complete RSVP again to confirm your saved answers.');
+    rsvpNote('Your previous submission was not confirmed. Your answers are here; please send your response again.');
+  }
+  if (pendingSave) restorePendingResponse();
+  else restoreResponse(cachedResponse);
+  if (API_URL && (guestKey || invitationId)) {
+    if (!cachedResponse && !pendingSave && rsvpSection) rsvpSection.hidden = true;
+    fetch(API_URL + '?action=status&key=' + encodeURIComponent(guestKey) + '&id=' + encodeURIComponent(invitationId))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || d.ok === false) throw new Error('status_failed');
-        if (d.found) restoreResponse(d);
+        applyInvitation(d.invite);
+        if (pendingSave && !touched && !detailsTouched) {
+          if (savedFieldsMatch(d, pendingSave)) {
+            clearPendingSave(pendingSave);
+            restoreResponse(d);
+          } else restorePendingResponse();
+        } else if (d.found) restoreResponse(d);
         else if (!touched && !detailsTouched) {
           responseData = null;
           if (cacheKey) { try { localStorage.removeItem(cacheKey); } catch (err) {} }
@@ -1538,6 +1707,7 @@
           if (detailsSection) detailsSection.hidden = true;
           var navRsvp = $('#nav-menu a[data-rsvp-link]');
           if (navRsvp) navRsvp.setAttribute('href', '#rsvp');
+          if (d.invitationError) rsvpNote('This invitation link is incomplete or cannot be identified. Please use the full link sent to you, or contact us for help.');
         }
       }).catch(function () {
         if (!cachedResponse && rsvpSection) rsvpSection.hidden = false;

@@ -40,9 +40,13 @@ class Sheet {
   }
 }
 
+const cache = new Map();
 const context = vm.createContext({
   SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheetByName: name => sheets[name] }) },
-  CacheService: { getScriptCache: () => ({ remove() {} }) },
+  CacheService: { getScriptCache: () => ({
+    remove: key => cache.delete(key), get: key => cache.get(key) || null,
+    put: (key, value) => cache.set(key, value)
+  }) },
   ContentService: { MimeType: { JSON: 'json' }, createTextOutput: text => ({
     text, setMimeType() { return this; }
   }) },
@@ -52,6 +56,13 @@ vm.runInContext(code, context);
 
 sheets.RSVP = new Sheet(Array.from(context.HEADERS));
 sheets['Guest List'] = new Sheet([...Array.from(context.GLHEADERS), 'Table']);
+sheets.Invitation = new Sheet([...Array.from(context.IHEADERS), context.LINKNAMES_HEADER, context.INV_ID_HEADER]);
+for (const [i, first, second] of [[1, 'A', 'B'], [2, 'C', 'D']]) {
+  const row = Array(context.IHEADERS.length).fill('');
+  row[0] = i; row[1] = first; row[2] = second; row[3] = 2;
+  row.push(first + ' & ' + second, 'test_invitation_' + i);
+  sheets.Invitation.appendRow(row);
+}
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).dietaryChoices, true);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).customArrangements, true);
 assert.equal(JSON.parse(context.doGet({ parameter: { action: 'features' } }).text).welcomeDinnerRsvp, true);
@@ -161,8 +172,8 @@ assert.equal(migrated.rows[0][context.GLHEADERS.length], 'Table 1');
 assert.equal(migrated.rows[0][context.GLCOL.WELCOME - 1], '',
   'existing guests have unanswered dinner attendance, rather than an invented decline');
 
-const oldRsvp = new Sheet(Array.from(context.HEADERS).slice(0, -1).concat('Notes'));
-oldRsvp.appendRow(sheets.RSVP.rows[1].slice(0, -1).concat('Keep this note'));
+const oldRsvp = new Sheet(Array.from(context.HEADERS).slice(0, context.COL.WELCOME - 1).concat('Notes'));
+oldRsvp.appendRow(sheets.RSVP.rows[1].slice(0, context.COL.WELCOME - 1).concat('Keep this note'));
 const migratedRsvp = context.readTable_(oldRsvp, context.HEADERS);
 assert.equal(migratedRsvp.rows[0][context.COL.WELCOME - 1], '');
 assert.equal(migratedRsvp.extraHeaders[0], 'Notes');

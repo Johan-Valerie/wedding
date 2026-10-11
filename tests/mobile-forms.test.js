@@ -155,15 +155,19 @@ for (const visual of [true, false]) {
 async function checkRequests() {
   const postCode = source.slice(source.indexOf('  function postResponse('), source.indexOf('  function saveResponse('));
   const timers = new Map();
-  let nextTimer = 1, signal, clearCount = 0, sheet = {ok:true, found:false}, post = () => new Promise(() => {});
-  const context = vm.createContext({API_URL: 'http://test.invalid', SAVE_TIMEOUT: 60000, SAVE_LOOK_AFTER: 12000,
+  let nextTimer = 1, nextSave = 1, signal, clearCount = 0, sheet = {ok:true, found:false}, post = () => new Promise(() => {});
+  const bodies = [];
+  const context = vm.createContext({API_URL: 'http://test.invalid', SAVE_TIMEOUT: 120000, SAVE_LOOK_AFTER: 12000,
     AbortController, encodeURIComponent, Date, String,
+    Math: Object.assign(Object.create(Math), {random: () => 0}),
+    newSaveId: () => 'test_save_' + nextSave++,
     sameList: (a, b) => a.join('\n') === b.join('\n'),
     setTimeout(fn, ms) { const id = nextTimer++; timers.set(id, {fn, ms}); return id; },
     clearTimeout(id) { if (timers.delete(id)) clearCount++; },
     fetch(url, options) {
       if (/action=status/.test(url)) return Promise.resolve({json: async () => sheet});
       signal = options.signal;
+      bodies.push(options.body);
       return post();
     }
   });
@@ -174,8 +178,8 @@ async function checkRequests() {
   // no reply, nothing in the Sheet: looks, keeps looking, then gives up and aborts
   const pending = context.postResponse({key:'Preview', attending:'yes', guests:['A','B']});
   assert.ok(fire(12000), 'looks in the Sheet after 12s'); await settle();
-  assert.ok(fire(4000), 'and again 4s later'); await settle();
-  assert.ok(fire(60000), 'gives up after a minute');
+  assert.ok(fire(6000), 'and again 6s later'); await settle();
+  assert.ok(fire(120000), 'eventually gives up while retaining the draft');
   await assert.rejects(pending, /save_timeout/);
   assert.equal(signal.aborted, true);
 
@@ -190,7 +194,7 @@ async function checkRequests() {
   timers.clear();
   sheet = {ok:true, found:true, attending:'No', guests:[]};
   const other = context.postResponse({key:'Preview', attending:'yes', guests:['A','B']});
-  fire(12000); await settle(); fire(4000); await settle(); fire(60000);
+  fire(12000); await settle(); fire(6000); await settle(); fire(120000);
   await assert.rejects(other, /save_timeout/);
 
   // the request itself fails (no readable reply): looks at once
@@ -199,12 +203,38 @@ async function checkRequests() {
   post = () => Promise.reject(new TypeError('Failed to fetch'));
   await context.postResponse({key:'Preview', attending:'no'});
 
-  // the Sheet's own refusal is final, whatever the Sheet holds
-  post = async () => ({json: async () => ({ok:false,error:'busy'})});
-  await assert.rejects(context.postResponse({key:'Preview', attending:'no'}), /busy/);
+  // A busy queue used to drop an unsaved decline. It retries with the SAME
+  // request ID instead, then completes once the next attempt is committed.
+  timers.clear(); bodies.length = 0; sheet = {ok:true, found:false};
+  let calls = 0;
+  post = async () => ({json: async () => ++calls === 1 ? {ok:false,error:'busy'} : {ok:true}});
+  const busy = context.postResponse({key:'Preview',attending:'no'});
+  await settle();
+  assert.equal(calls, 1);
+  assert.ok(fire(1000), 'busy schedules a retry');
+  await settle(); await busy;
+  assert.equal(calls, 2);
+  assert.equal(bodies[0], bodies[1], 'a retry carries the same save ID and payload');
+
+  // Validation errors are final and never silently accepted or retried.
+  sheet = {ok:true,found:true,attending:'No'};
+  post = async () => ({json: async () => ({ok:false,error:'invitation_not_found'})});
+  await assert.rejects(context.postResponse({key:'Preview', attending:'no'}), /invitation_not_found/);
   post = async () => ({json: async () => ({ok:true})});
   await context.postResponse({key:'Preview'});
   await Promise.resolve();
   assert.ok(clearCount >= 2);
+
+  const old = {ok:true, found:true, attending:'Yes', pax:2, guests:['A','B'],
+    diets:['none','halal'], welcomeDinner:['yes','no'], wishes:'Old wish'};
+  assert.equal(context.savedFieldsMatch(old,{attending:'yes',pax:1}),false);
+  assert.equal(context.savedFieldsMatch(old,{attending:'yes',wishes:'New wish',replaceWishes:true}),false);
+  assert.equal(context.savedFieldsMatch(old,{attending:'yes',diets:['none','vegetarian']}),false);
+  assert.equal(context.savedFieldsMatch(old,{attending:'yes',welcomeDinner:['yes','yes']}),false);
+  assert.equal(context.savedFieldsMatch(old,{attending:'yes',pax:2,guests:['A','B'],
+    diets:['none','halal'],welcomeDinner:['yes','no'],wishes:'Old wish',replaceWishes:true}),true);
+  assert.equal(context.savedFieldsMatch({...old,requestId:'older_save'},{requestId:'new_save',attending:'yes'}),false);
+  assert.equal(context.savedFieldsMatch({...old,requestId:''},{requestId:'new_save',attending:'yes'}),false);
+  assert.equal(context.savedFieldsMatch({...old,requestId:'new_save'},{requestId:'new_save',attending:'yes'}),true);
 }
 checkRequests().then(() => console.log('Mobile keyboard resize, focus, dismissal, navigation and save recovery: OK'));
