@@ -64,7 +64,7 @@
  *                it still matches the Sheet. "No" = that guest holds a link
  *                from before a change (Holy Matrimony ticked, seats changed,
  *                renamed); re-send them the link in column F. Created by
- *                setup()/refreshLinks(); only clearTestData() empties it.
+ *                setup()/refreshLinks(), never cleared by anything.
  *   Dashboard  — counts only; holds no data of its own.
  *
  * Rows are matched to invitations by NAME everywhere — the current name or
@@ -632,6 +632,11 @@ function recordCurrentNames_(inv, n) {
  * that is unambiguous: exactly one row has the same Guest name as the answer's
  * first person, that row has no answer of its own yet, and no other stray
  * answer points at it. Anything short of that is left alone and listed.
+ *
+ * A link cut short on its way to the guest ("Edrick Heriy" for "Edrick
+ * Heriyanto") is matched the same careful way: the answer's name must be the
+ * start of exactly ONE invitation's name, and hold a space and 8 characters,
+ * so a bare first name never counts.
  */
 function adoptStrayAnswers_(inv, rows, n) {
   var answered = {}, strays = [], seen = Object.create(null);
@@ -658,6 +663,10 @@ function adoptStrayAnswers_(inv, rows, n) {
   strays.forEach(function (raw) {
     var first = keyOf_(raw.split(/\s+&\s+/)[0]);
     var open  = (byGuest[first] || []).filter(function (r) { return !answered[r]; });
+    if (!byGuest[first]) {
+      var cut = rowsStartingWith_(inv, raw);
+      open = cut.length === 1 && !answered[cut[0]] ? cut : [];
+    }
     if (open.length === 1) (claims[open[0]] = claims[open[0]] || []).push(raw);
     else report.unlinked.push(raw);
   });
@@ -669,6 +678,18 @@ function adoptStrayAnswers_(inv, rows, n) {
     report.linked.push({ name: list[0], row: Number(row) });
   });
   return report;
+}
+
+/** Rows whose current name begins with this one, longer than it (a cut-off link). */
+function rowsStartingWith_(inv, raw) {
+  var k = keyOf_(raw);
+  if (k.length < 8 || k.indexOf(' ') < 0) return [];
+  var rows = [];
+  Object.keys(inv.cur).forEach(function (name) {
+    var row = inv.cur[name];
+    if (name.length > k.length && name.indexOf(k) === 0 && rows.indexOf(row) < 0) rows.push(row);
+  });
+  return rows;
 }
 
 /** Status..Nights for one RSVP row. */
@@ -738,7 +759,7 @@ function reportText_(report) {
   if (!report || (!report.linked.length && !report.unlinked.length)) return '';
   var msg = '';
   if (report.linked.length) {
-    msg += '\n\nLinked ' + report.linked.length + ' answer(s) that came in under an older name:\n' +
+    msg += '\n\nLinked ' + report.linked.length + ' answer(s) that came in under an older or cut-off name:\n' +
       report.linked.map(function (x) {
         return '  • "' + x.name + '" → invitation no. ' + (x.row - 1);
       }).join('\n') +
@@ -783,98 +804,6 @@ function fixRows() {
     CacheService.getScriptCache().remove('wishes');
     return 'Fixed — ' + data.length + ' response(s) now start at row 2.';
   });
-}
-
-/**
- * ONCE, JUST BEFORE THE INVITATIONS GO OUT — wipes what the tests left, so the
- * first real guest starts on a clean sheet. RSVP, Guest List and Opens log
- * lose every row under their headers. Invitation keeps every invitation
- * (names, companions, seats, Holy Matrimony ticks, links, phones and any
- * column of your own) and loses only what the site wrote there: Status to
- * Opens, and the older names in Link names. Headers stay as they are — the
- * web app checks them before it saves an answer.
- *
- * Nothing happens until CLEAR is typed into the box it opens on the
- * spreadsheet, and a full copy of the spreadsheet goes to Drive first.
- */
-function clearTestData() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var ui;
-  try { ui = SpreadsheetApp.getUi(); }
-  catch (err) { throw new Error('Open the spreadsheet, then run clearTestData() from Extensions → Apps Script.'); }
-
-  var rsvp = sheet_(RSVP_SHEET), list = sheet_(GLIST_SHEET), inv = sheet_(INV_SHEET);
-  var log = ss.getSheetByName(OLOG_SHEET);
-  var newest = 0;
-  if (rsvp.getLastRow() > 1) {
-    rsvp.getRange(2, COL.TIME, rsvp.getLastRow() - 1, 1).getValues().forEach(function (r) {
-      newest = Math.max(newest, timeOf_(r[0]));
-    });
-  }
-
-  // Asked outside the lock: the box waits for a click, and guests must not.
-  var answer = ui.prompt('Clear the test data?',
-    'This deletes:\n' +
-    '  • ' + filledBelowHeader_(rsvp, COL.KEY) + ' RSVP answer(s), with their wishes\n' +
-    '  • ' + filledBelowHeader_(list, GLCOL.GUEST) + ' name(s) in the Guest List\n' +
-    '  • ' + (log ? filledBelowHeader_(log, 1) : 0) + ' row(s) in the Opens log\n' +
-    '  • Status, Pax confirmed, Accommodation, Nights and the opens of every invitation\n' +
-    (newest ? '\nThe newest answer came in on ' + wib_(new Date(newest)) + '.\n' : '') +
-    '\nIt keeps your ' + filledBelowHeader_(inv, ICOL.NAME) + ' invitation(s): names, companions, ' +
-    'seats, Holy Matrimony ticks, links and phone numbers.\n' +
-    'A full copy of this spreadsheet is saved to your Google Drive first.\n\n' +
-    'Type CLEAR to go ahead.',
-    ui.ButtonSet.OK_CANCEL);
-  if (answer.getSelectedButton() !== ui.Button.OK ||
-      answer.getResponseText().trim().toUpperCase() !== 'CLEAR') {
-    ui.alert('Nothing was changed.');
-    return 'Cancelled — nothing was changed.';
-  }
-
-  var copy = withLock_(function () {
-    var backup = ss.copy(ss.getName() + ' — test data, ' + wib_(new Date()));
-    clearBelowHeader_(rsvp, true);       // the Approved tickboxes go too
-    clearBelowHeader_(list, false);      // keeps any dropdowns of your own
-    if (log) clearBelowHeader_(log, false);
-    var old = ss.getSheetByName(OPENS_SHEET);
-    if (old) ss.deleteSheet(old);
-    var n = inv.getLastRow() - 1;
-    if (n > 0) {
-      inv.getRange(2, ICOL.STATUS, n, ICOL.OPENS - ICOL.STATUS + 1).clearContent();
-      var col = linkNamesCol_(inv, false);
-      if (col) inv.getRange(2, col, n, 1).clearContent();
-    }
-    SpreadsheetApp.flush();
-    // Every invitation back to "Not opened", and its current name into Link names.
-    writeInvitationFormulas_(inv);
-    setupOpensLog_(ss);
-    setupDashboard_(ss);
-    CacheService.getScriptCache().remove('wishes');
-    return backup.getName();
-  });
-
-  ui.alert('Done — the sheet is ready for your guests.',
-    'The sheet as it was is saved in your Google Drive as\n"' + copy + '".\n\n' +
-    'Any rows in the Invitation tab that were only for testing are still there: ' +
-    'delete those rows, then run refreshLinks().',
-    ui.ButtonSet.OK);
-  return 'Test data cleared. Copy: ' + copy;
-}
-
-/** How many rows under the header have something in this column. */
-function filledBelowHeader_(s, col) {
-  var n = s.getLastRow() - 1;
-  if (n < 1) return 0;
-  return s.getRange(2, col, n, 1).getValues()
-          .filter(function (r) { return String(r[0]).trim() !== ''; }).length;
-}
-
-/** Empties every row under the header, all columns; formats stay. */
-function clearBelowHeader_(s, validations) {
-  if (s.getMaxRows() < 2) return;
-  var all = s.getRange(2, 1, s.getMaxRows() - 1, s.getMaxColumns());
-  all.clearContent();
-  if (validations) all.clearDataValidations();
 }
 
 /* ═══════════════ WEB APP: receive from the website ═══════════════ */
