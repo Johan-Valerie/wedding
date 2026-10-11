@@ -150,23 +150,59 @@ for (const visual of [true, false]) {
 
 // A stalled RSVP request rejects and aborts, so the save queue and disabled
 // form can recover. A refused server response must never report success.
+// A slow or lost reply is not a refusal: once the Sheet holds the answer
+// (read back through the status lookup), the save counts as done.
 async function checkRequests() {
   const postCode = source.slice(source.indexOf('  function postResponse('), source.indexOf('  function saveResponse('));
-  let timeout, signal, clearCount = 0;
-  const context = vm.createContext({API_URL: 'http://test.invalid', SAVE_TIMEOUT: 30000,
-    AbortController, encodeURIComponent,
-    setTimeout(fn, ms) { assert.equal(ms, 30000); timeout = fn; return 1; },
-    clearTimeout() { clearCount++; },
-    fetch(url, options) { signal = options.signal; return new Promise(() => {}); }
+  const timers = new Map();
+  let nextTimer = 1, signal, clearCount = 0, sheet = {ok:true, found:false}, post = () => new Promise(() => {});
+  const context = vm.createContext({API_URL: 'http://test.invalid', SAVE_TIMEOUT: 60000, SAVE_LOOK_AFTER: 12000,
+    AbortController, encodeURIComponent, Date, String,
+    sameList: (a, b) => a.join('\n') === b.join('\n'),
+    setTimeout(fn, ms) { const id = nextTimer++; timers.set(id, {fn, ms}); return id; },
+    clearTimeout(id) { if (timers.delete(id)) clearCount++; },
+    fetch(url, options) {
+      if (/action=status/.test(url)) return Promise.resolve({json: async () => sheet});
+      signal = options.signal;
+      return post();
+    }
   });
+  const fire = ms => { for (const [id, t] of timers) if (t.ms === ms) { timers.delete(id); t.fn(); return true; } return false; };
+  const settle = () => new Promise(r => setImmediate(r));
   vm.runInContext(postCode, context);
-  const pending = context.postResponse({key:'Preview', guests:['A','B']});
-  timeout();
+
+  // no reply, nothing in the Sheet: looks, keeps looking, then gives up and aborts
+  const pending = context.postResponse({key:'Preview', attending:'yes', guests:['A','B']});
+  assert.ok(fire(12000), 'looks in the Sheet after 12s'); await settle();
+  assert.ok(fire(4000), 'and again 4s later'); await settle();
+  assert.ok(fire(60000), 'gives up after a minute');
   await assert.rejects(pending, /save_timeout/);
   assert.equal(signal.aborted, true);
-  context.fetch = async () => ({json: async () => ({ok:false,error:'busy'})});
-  await assert.rejects(context.postResponse({key:'Preview'}), /busy/);
-  context.fetch = async () => ({json: async () => ({ok:true})});
+
+  // no reply, but the Sheet has the answer: saved
+  timers.clear();
+  sheet = {ok:true, found:true, attending:'Yes', guests:['A','B']};
+  const looked = context.postResponse({key:'Preview', attending:'yes', guests:['A','B']});
+  fire(12000); await settle();
+  await looked;
+
+  // the Sheet holds a different answer (an older decline): not taken for this one
+  timers.clear();
+  sheet = {ok:true, found:true, attending:'No', guests:[]};
+  const other = context.postResponse({key:'Preview', attending:'yes', guests:['A','B']});
+  fire(12000); await settle(); fire(4000); await settle(); fire(60000);
+  await assert.rejects(other, /save_timeout/);
+
+  // the request itself fails (no readable reply): looks at once
+  timers.clear();
+  sheet = {ok:true, found:true, attending:'No'};
+  post = () => Promise.reject(new TypeError('Failed to fetch'));
+  await context.postResponse({key:'Preview', attending:'no'});
+
+  // the Sheet's own refusal is final, whatever the Sheet holds
+  post = async () => ({json: async () => ({ok:false,error:'busy'})});
+  await assert.rejects(context.postResponse({key:'Preview', attending:'no'}), /busy/);
+  post = async () => ({json: async () => ({ok:true})});
   await context.postResponse({key:'Preview'});
   await Promise.resolve();
   assert.ok(clearCount >= 2);

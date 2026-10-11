@@ -894,7 +894,11 @@
   var editSaveTimer;
   var saveQueue = Promise.resolve();
   var saveVersion = 0;
-  var SAVE_TIMEOUT = 30000;
+  /* Apps Script takes one save at a time and lets each wait its turn for up
+     to 30s, then saves; so a save is given a minute, and from 12s on the page
+     also looks for it in the Sheet (see postResponse). */
+  var SAVE_TIMEOUT = 60000;
+  var SAVE_LOOK_AFTER = 12000;
   var cacheKey = guestKey ? 'jv-wedding-response:' + guestKey : '';
 
   function saveNote(id, msg) {
@@ -944,26 +948,69 @@
     }
   }
   /* Edits are sent in order and only marked saved after the sheet confirms
-     them. A later change cannot be overtaken by an older, slower request. */
+     them. A later change cannot be overtaken by an older, slower request.
+     When many guests answer at once, a save can wait its turn so long that
+     it lands after its reply was given up on: a guest declined, the Sheet
+     has it, and her page said it couldn't save. So a slow or missing reply
+     is not taken as a no. The page also reads the answer back from the
+     Sheet (the status lookup waits for no one) and counts it saved once it
+     is there. Only the Sheet's own refusal, or a minute with neither, fails. */
   function postResponse(fields) {
     var body = Object.keys(fields).map(function (k) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(
         Array.isArray(fields[k]) ? JSON.stringify(fields[k]) : fields[k]);
     }).join('&');
     return new Promise(function (resolve, reject) {
+      var done = false, look;
       var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = setTimeout(function () {
+      var deadline = setTimeout(function () {
         if (controller) controller.abort();
-        reject(new Error('save_timeout'));
+        finish(new Error('save_timeout'));
       }, SAVE_TIMEOUT);
+      function finish(err) {
+        if (done) return;
+        done = true;
+        clearTimeout(deadline);
+        clearTimeout(look);
+        if (err) reject(err); else resolve();
+      }
+      function lookInSheet() {
+        if (done) return;
+        answerInSheet(fields).then(function (there) {
+          if (there) finish();
+          else if (!done) look = setTimeout(lookInSheet, 4000);
+        });
+      }
+      look = setTimeout(lookInSheet, SAVE_LOOK_AFTER);
       var options = { method: 'POST', keepalive: true, body: body,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' } };
       if (controller) options.signal = controller.signal;
       fetch(API_URL, options).then(function (r) { return r.json(); }).then(function (d) {
-        if (!d || d.ok !== true) throw new Error(d && d.error || 'save_failed');
-        resolve();
-      }).catch(reject).finally(function () { clearTimeout(timer); });
+        finish(d && d.ok === true ? null : new Error(d && d.error || 'save_failed'));
+      }).catch(function () {
+        // No readable reply, which is not a no: keep looking in the Sheet.
+        if (done) return;
+        clearTimeout(look);
+        lookInSheet();
+      });
     });
+  }
+  /* Whether the Sheet already holds this answer: the same attendance, the
+     same guest names when they were sent, and for the stay step the same
+     stay, nights and arrival, completed. */
+  function answerInSheet(fields) {
+    return fetch(API_URL + '?action=status&key=' + encodeURIComponent(fields.key) + '&t=' + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.found || String(d.attending).toLowerCase() !== String(fields.attending).toLowerCase()) return false;
+        if (fields.guests && !sameList(d.guests || [], fields.guests)) return false;
+        if (fields.action !== 'details') return true;
+        var hour = String(fields.arrivalHour == null ? '' : fields.arrivalHour);
+        var arrival = fields.arrival && /^([01]?\d|2[0-3])$/.test(hour)
+          ? fields.arrival + ' ' + ('0' + hour).slice(-2) + ':00' : (fields.arrival || '');
+        return !!d.detailsDone && d.accommodation === fields.accommodation &&
+          String(d.nights || '') === String(fields.nights || '') && String(d.arrival || '') === arrival;
+      }).catch(function () { return false; });
   }
   function saveResponse(fields, noteId) {
     clearTimeout(editSaveTimer);
@@ -973,9 +1020,15 @@
     }
     var version = ++saveVersion;
     saveNote(noteId, 'Saving changes\u2026');
+    // A long wait reads as a failure; say it is still going.
+    var slow = setTimeout(function () {
+      if (version === saveVersion) saveNote(noteId, 'Still saving\u2026 please keep this page open.');
+    }, 10000);
     var save = saveQueue.catch(function () {}).then(function () {
       if (!API_URL) return;
       return postResponse(fields);
+    }).finally(function () {
+      clearTimeout(slow);
     }).then(function () {
       rememberResponse(fields);
       if (fields.guests) confirmedAnswer = { guests: fields.guests, diets: fields.diets, welcomeDinner: fields.welcomeDinner };
