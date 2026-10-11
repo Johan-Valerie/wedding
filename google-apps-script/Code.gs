@@ -33,6 +33,13 @@
  *                by this script, not by formulas (see syncInvitationStatus_).
  *                Phone (WhatsApp) is kept for sending invitations later.
  *
+ *                WHATSAPP MESSAGE and SEND ON WHATSAPP (after the other
+ *                columns, found by header). Each row's invitation message in
+ *                the couple's wording (INVITE_MESSAGE): its name, seats, the
+ *                Holy Matrimony line when ticked, and its link. The send link
+ *                opens WhatsApp with the message typed out, to the row's
+ *                phone number. Both are formulas, like the link.
+ *
  *                LINK NAMES (after the other columns). Every name this row's
  *                link has carried, one per line; an answer under ANY of them
  *                counts for this row. A sent link cannot change, so shorten a
@@ -108,6 +115,48 @@ var IHEADERS = ['Invitation no.','Guest name','Companion name','Max seats','Holy
    and a column you added yourself must not be written over. setup() carries it
    like any column of yours. */
 var LINKNAMES_HEADER = 'Link names';
+
+/* WhatsApp: each invitation's message, in the couple's wording, and a link
+   that opens WhatsApp with it typed out. Both are formulas down the tab, so
+   they follow the row as it is typed, and both columns are found by their
+   header, like Link names. {name}, {seats} and {link} come from the row; a
+   line starting {holy} is there only when Holy Matrimony is ticked. */
+var MESSAGE_HEADER = 'WhatsApp message';
+var SEND_HEADER    = 'Send on WhatsApp';
+var INVITE_MESSAGE = [
+  'Dear, {name}',
+  '',
+  'With great joy, we invite you to celebrate',
+  '',
+  '*THE WEDDING OF*',
+  '',
+  '*JOHAN GANDA WIJAYA*',
+  '&',
+  '*EMANUELLA VALERIE DIDY*',
+  '',
+  '',
+  '*SATURDAY, 9 JANUARY 2027*',
+  '{holy}3:00 PM — Holy Matrimony',
+  '4:00 PM — Cocktail Party',
+  '6:00 PM — Wedding Reception',
+  '📍 La Chapelle Bangkok, Thailand',
+  '',
+  '*Dress Code: Understated Elegance*',
+  '* Ladies: Formal attire in pastel yellow, pastel green, pastel pink, or khaki. Kindly avoid beading, sequins, and glitter.',
+  '* Gentlemen: A classic suit in black or khaki.',
+  '',
+  'With love, we kindly ask that no little ones join us, as our wedding will be an *adults-only celebration*.',
+  '',
+  'We have reserved {seats} in your honor.',
+  '',
+  'Please view your invitation and complete your RSVP by *9 December 2026* through the link below:',
+  '{link}',
+  '',
+  'We look forward to celebrating this special day with you.',
+  '',
+  'With love,',
+  'Johan & Valerie'
+];
 
 /* Guest List columns (1-based) */
 var GLCOL = { NO:1, GUEST:2, INVNO:3, INVNAME:4, WHEN:5, DIET:6, WELCOME:7 };
@@ -400,8 +449,92 @@ function writeInvitationFormulas_(s) {
   }
   s.getRange(2, ICOL.NO,   n, 1).setFormulas(N);
   s.getRange(2, ICOL.LINK, n, 1).setFormulas(L);
+  writeMessageFormulas_(s, n, key);
   ensureTickboxColumn_(s, ICOL.HOLMAT, n);
   return syncInvitationStatus_(s);
+}
+
+/**
+ * The WhatsApp message and its send link down the tab (see INVITE_MESSAGE).
+ * The send link opens WhatsApp with the message typed out, to the row's
+ * Phone (WhatsApp) number; with no number, WhatsApp asks which chat. It is a
+ * link rather than text to copy because Sheets wraps copied multi-line text
+ * in quote marks.
+ */
+function writeMessageFormulas_(s, n, key) {
+  var msgCol = headerCol_(s, MESSAGE_HEADER, 280,
+    'Each invitation\'s message, written from its row. The wording is INVITE_MESSAGE in the Apps Script code.');
+  var sendCol = headerCol_(s, SEND_HEADER, 150,
+    'Opens WhatsApp with this invitation\'s message typed out, to the Phone (WhatsApp) number. Type numbers ' +
+    'with their country code (+62 …, +66 …); one starting with 0 is read as Indonesian. With no number, ' +
+    'WhatsApp asks which chat to send it to.');
+  /* Digits only, so "+62 812-…" is 62812…; an international 00 is dropped
+     and a leading 0 is read as Indonesia's (62). */
+  var digits = 'REGEXREPLACE(' + col_(ICOL.PHONE) + '{r}&"","[^0-9]","")';
+  var phone = 'IF(LEFT(' + digits + ',2)="00",MID(' + digits + ',3,30)' +
+              ',IF(LEFT(' + digits + ',1)="0","62"&MID(' + digits + ',2,30),' + digits + '))';
+  var message = messageFormula_(key);
+  var send = '=IF(B{r}="","",HYPERLINK("https://wa.me/"&' + phone + '&"?text="&ENCODEURL(' +
+             col_(msgCol) + '{r}),"' + SEND_HEADER + '"))';
+  var M = [], S = [];
+  for (var i = 0; i < n; i++) {
+    var r = i + 2;
+    M.push([message.replace(/\{r\}/g, r)]);
+    S.push([send.replace(/\{r\}/g, r)]);
+  }
+  // Clipped, so every row stays one line tall while the cell holds the whole message.
+  s.getRange(2, msgCol, n, 1).setFormulas(M).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+  s.getRange(2, sendCol, n, 1).setFormulas(S);
+}
+
+/** INVITE_MESSAGE as one formula: its text, the row's values, CHAR(10) between lines. */
+function messageFormula_(key) {
+  var seats = 'IF(D{r}="",2,D{r})';
+  var pieces = [];
+  INVITE_MESSAGE.forEach(function (line, i) {
+    var more = i < INVITE_MESSAGE.length - 1;
+    if (line.indexOf('{holy}') === 0) {
+      pieces.push('IF(E{r}=TRUE,' + literal_(line.slice(6)) + (more ? '&CHAR(10)' : '') + ',"")');
+      return;
+    }
+    line.split(/(\{name\}|\{seats\}|\{link\})/).forEach(function (part) {
+      if (part === '{name}') pieces.push('(' + key + ')');
+      else if (part === '{seats}') pieces.push(seats + '&IF(' + seats + '=1," seat"," seats")');
+      else if (part === '{link}') pieces.push(col_(ICOL.LINK) + '{r}');
+      else if (part) pieces.push(literal_(part));
+    });
+    if (more) pieces.push('CHAR(10)');
+  });
+  return '=IF(B{r}="","",' + pieces.join('&') + ')';
+}
+
+/** A formula string literal. */
+function literal_(text) {
+  return '"' + String(text).replace(/"/g, '""') + '"';
+}
+
+/** Column letters for a column number: 1 → A, 27 → AA. */
+function col_(n) {
+  var s = '';
+  for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s;
+  return s;
+}
+
+/** Column of `header`, found by its name; added after the last column when missing. */
+function headerCol_(s, header, width, note) {
+  var last = s.getLastColumn();
+  if (last > 0) {
+    var head = s.getRange(1, 1, 1, last).getValues()[0];
+    for (var i = 0; i < head.length; i++) {
+      if (String(head[i]).trim() === header) return i + 1;
+    }
+  }
+  var col = Math.max(last, IHEADERS.length) + 1;
+  ensureSize_(s, 1, col);
+  s.getRange(1, col).setValue(header).setNote(note)
+   .setFontWeight('bold').setBackground('#292929').setFontColor('#ffffff');
+  s.setColumnWidth(col, width);
+  return col;
 }
 
 /**
