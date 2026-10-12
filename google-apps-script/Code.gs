@@ -4,7 +4,14 @@
  * Lives inside the "Johan & Vali RSVP" Google Sheet. Separate from the
  * engagement sheet — do not point this at that one.
  *
- * SETUP (once, and again after pasting a new version of this file):
+ * UPDATE THE EXISTING LIVE WEDDING SHEET:
+ *   1. Make a backup copy of the Sheet, then paste this file and Save.
+ *   2. Run upgradeRsvpReliability(). It adds this update's columns in place;
+ *      it does not clear/rebuild the existing RSVP, Invitation or Guest List.
+ *   3. Deploy → Manage deployments → edit → New version → Deploy.
+ *      Keep the existing deployment URL.
+ *
+ * FULL SETUP (new sheets or older layouts, after making a backup):
  *   1. Extensions → Apps Script, paste this file, Save.
  *   2. Run setup() and grant permissions.
  *   3. Deploy → Manage deployments → ✏ → Version: New version → Deploy.
@@ -80,7 +87,7 @@
  * The invitation number is only the row's position; refreshLinks() updates
  * its copies in RSVP and Guest List after rows move.
  *
- * setup() is safe to re-run. It re-reads every tab by HEADER NAME, so data
+ * setup() rebuilds tabs from values read by HEADER NAME, so data
  * follows its column when columns move, and it keeps any column it does not
  * know (moved to the right of the standard ones, as plain values) instead of
  * erasing it.
@@ -205,6 +212,67 @@ var STATUS = {
 };
 
 /* ═══════════════ SETUP ═══════════════ */
+
+/** Live upgrade for the current 15-column RSVP / 7-column Guest List layout.
+ * Validate first, then add metadata without clearing any existing sheet.
+ * Full setup() is still available for new sheets and older layouts. */
+function upgradeRsvpReliability() {
+  var msg = withLock_(function () {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var r = sheet_(RSVP_SHEET), g = sheet_(GLIST_SHEET), s = sheet_(INV_SHEET);
+    requireUpgradeLayout_(r, HEADERS, COL.WELCOME, RSVP_SHEET);
+    requireUpgradeLayout_(g, GLHEADERS, GLCOL.WELCOME, GLIST_SHEET);
+    requireUpgradeLayout_(s, IHEADERS, IHEADERS.length, INV_SHEET);
+    var errors = ss.getSheetByName(SAVE_LOG_SHEET);
+    if (errors && errors.getLastRow())
+      requireUpgradeLayout_(errors, SAVE_LOG_HEADERS, SAVE_LOG_HEADERS.length, SAVE_LOG_SHEET);
+
+    addUpgradeColumns_(r, HEADERS, COL.WELCOME);
+    addUpgradeColumns_(g, GLHEADERS, GLCOL.WELCOME);
+    setupSaveLog_(ss);
+    var n = s.getLastRow() - 1;
+    if (n > 0) {
+      var idCol = ensureInvitationIds_(s, n), formula = invitationLinkFormula_(idCol), links = [];
+      for (var i = 0; i < n; i++) links.push([formula.replace(/\{r\}/g, i + 2)]);
+      s.getRange(2, ICOL.LINK, n, 1).setFormulas(links);
+    }
+    restampNumbers_();
+    return 'RSVP reliability upgrade complete. Existing answers kept in place. ' +
+      'Now deploy a New version of the existing web app.';
+  });
+  Logger.log(msg);
+  return msg;
+}
+
+/** Stop before any changes if this is not the known live layout, or if the
+ * new metadata columns already exist elsewhere. Never guess over custom data. */
+function requireUpgradeLayout_(s, headers, base, label) {
+  var head = s.getRange(1, 1, 1, Math.max(s.getLastColumn(), base)).getValues()[0];
+  for (var i = 0; i < base; i++) {
+    if (head[i] !== headers[i]) throw new Error('Upgrade stopped before changes: ' + label +
+      ' column ' + col_(i + 1) + ' must be "' + headers[i] + '". Review the layout before updating.');
+  }
+  for (var j = base; j < headers.length; j++) {
+    for (var k = 0; k < head.length; k++) {
+      if (head[k] === headers[j] && k !== j) throw new Error('Upgrade stopped before changes: ' +
+        label + ' has "' + headers[j] + '" in an unexpected column.');
+    }
+  }
+}
+
+/** Insert missing metadata columns before custom columns, preserving their
+ * cells, formulas, notes and formatting. Standard answer columns stay put. */
+function addUpgradeColumns_(s, headers, base) {
+  for (var i = base; i < headers.length; i++) {
+    var c = i + 1;
+    if (c <= s.getMaxColumns() && s.getRange(1, c).getValue() === headers[i]) continue;
+    if (c <= s.getMaxColumns()) s.insertColumnBefore(c);
+    else s.insertColumnsAfter(s.getMaxColumns(), 1);
+    s.getRange(1, c).setValue(headers[i])
+      .setFontWeight('bold').setBackground('#292929').setFontColor('#ffffff');
+    s.getRange(2, c, s.getMaxRows() - 1, 1).clearDataValidations().setNumberFormat('@');
+  }
+}
 
 function setup() {
   var msg = withLock_(function () {
@@ -456,9 +524,7 @@ function writeInvitationFormulas_(s) {
   var idCol = ensureInvitationIds_(s, n);
   var key  = 'TRIM(B{r}) & IF(TRIM(C{r})="", "", " & " & TRIM(C{r}))';
   var no   = '=IF(B{r}="","",ROW()-1)';
-  var link = '=IF(B{r}="","", "' + SITE_URL + '?id=" & ' + col_(idCol) + '{r}' +
-             ' & "&to=" & ENCODEURL(' + key + ')' +
-             ' & "&max=" & IF(D{r}="",2,D{r}) & IF(E{r}=TRUE, "&hm=1", ""))';
+  var link = invitationLinkFormula_(idCol);
   var N = [], L = [];
   for (var i = 0; i < n; i++) {
     var r = i + 2;
@@ -472,13 +538,22 @@ function writeInvitationFormulas_(s) {
   return syncInvitationStatus_(s);
 }
 
+function invitationLinkFormula_(idCol) {
+  var key = 'TRIM(B{r}) & IF(TRIM(C{r})="", "", " & " & TRIM(C{r}))';
+  return '=IF(B{r}="","", "' + SITE_URL + '?id=" & ' + col_(idCol) + '{r}' +
+    ' & "&to=" & ENCODEURL(' + key + ')' +
+    ' & "&max=" & IF(D{r}="",2,D{r}) & IF(E{r}=TRUE, "&hm=1", ""))';
+}
+
 /** An opaque identity before the long name, so a shortened or renamed link
- * still belongs to its invitation. Only setup()/refreshLinks() creates IDs. */
+ * still belongs to its invitation. Only admin upgrade/setup/refresh creates IDs. */
 function ensureInvitationIds_(s, n) {
   var col = headerCol_(s, INV_ID_HEADER, 150,
     'Permanent invitation identity. Keep it when correcting a name. Clear this AND Link names when reusing a row for another person.');
   var names = s.getRange(2, ICOL.NAME, n, 1).getValues();
-  var ids = s.getRange(2, col, n, 1).getValues(), used = {}, changed = false;
+  var idRange = s.getRange(2, col, n, 1);
+  var ids = idRange.getValues(), used = {}, changed = false;
+  idRange.setNumberFormat('@');
   ids.forEach(function (r) { if (r[0]) used[String(r[0])] = true; });
   for (var i = 0; i < n; i++) {
     if (!String(names[i][0]).trim() || ids[i][0]) continue;
@@ -1453,7 +1528,9 @@ function sheet_(name) {
 function withLock_(fn) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
-  try { return fn(); } finally { lock.releaseLock(); }
+  try { return fn(); } finally {
+    try { SpreadsheetApp.flush(); } finally { lock.releaseLock(); }
+  }
 }
 
 /**

@@ -26,7 +26,8 @@ class Sheet {
       clearContent() { return this.setValues(Array.from({length:height}, () => Array(width).fill(''))); },
       insertCheckboxes() { return this; }
     };
-    for (const name of ['setFontWeight','setFontColor','setBackground','setNote','setWrapStrategy'])
+    for (const name of ['setFontWeight','setFontColor','setBackground','setNote','setWrapStrategy',
+      'clearDataValidations','setNumberFormat'])
       range[name] = () => range;
     return range;
   }
@@ -36,6 +37,13 @@ class Sheet {
   getMaxColumns() { return 30; }
   insertRowsAfter() {}
   insertColumnsAfter() {}
+  insertColumnBefore(col) {
+    for (const row of this.rows) {
+      while (row.length < col - 1) row.push('');
+      row.splice(col - 1, 0, '');
+    }
+    this.writes++;
+  }
 }
 
 function createBackendFixture(people = [
@@ -54,6 +62,7 @@ function createBackendFixture(people = [
     insertSheet: name => (sheets[name] = new Sheet())
   };
   const context = vm.createContext({
+    Logger: {log() {}},
     SpreadsheetApp: {getActiveSpreadsheet: () => spreadsheet, flush() {}, WrapStrategy:{CLIP:'CLIP'}},
     LockService: {getScriptLock: () => lock},
     CacheService: {getScriptCache: () => ({

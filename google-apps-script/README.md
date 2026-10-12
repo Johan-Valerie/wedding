@@ -5,14 +5,25 @@ does **not** update the Google Apps Script web app.
 
 ## Update the live script
 
-1. Open your wedding Apps Script project and replace its code with **all of
+1. In Google Sheets, choose **File → Make a copy** to keep a backup, then return
+   to the original wedding Sheet.
+2. Open your wedding Apps Script project and replace its code with **all of
    [Code.gs](Code.gs)**, then save.
-2. Select **setup** in the function dropdown and click **Run**. This adds the
-   invitation/save IDs and the **RSVP errors** tab, preserving existing responses,
-   approved wishes, and guest details by their column headers.
-3. Immediately choose **Deploy → Manage deployments → Edit → New version →
+3. Select **upgradeRsvpReliability** in the function dropdown and click **Run**.
+   This validates the current layout and adds invitation/save IDs and the
+   **RSVP errors** tab in place. Existing response rows, dates, approved wishes,
+   dietary/dinner choices, accommodation, and custom columns are preserved.
+   Wait for successful completion. If it reports an error, keep the existing
+   deployment running and review the error before deploying.
+4. Immediately choose **Deploy → Manage deployments → Edit → New version →
    Deploy**. Keep the existing web app deployment and URL. Saving the code alone
    does not update the website's backend.
+
+Use this upgrade function for the existing live wedding Sheet. Full `setup()`
+is available for new sheets or older layouts; it reads and rebuilds tabs, so
+keep a backup before using it. Both routines share the RSVP write lock and
+flush pending writes before releasing it. Submissions may briefly wait/retry
+while the upgrade is running.
 
 The website remains compatible with the previous deployed script while this
 update is pending. Its retry and draft recovery changes work with that version;
@@ -24,8 +35,8 @@ the new script deployment.
 - Busy or lost network replies are retried with the same save ID. The website
   reads back the exact save, and keeps an unconfirmed submission on that device
   for retry after a reload.
-- Each named invitation receives a permanent **Invitation ID** during `setup()`
-  or `refreshLinks()`. New links put the ID before the long guest name. Existing
+- Each named invitation receives a permanent **Invitation ID** during the
+  upgrade, `setup()`, or `refreshLinks()`. New links put the ID before the long guest name. Existing
   name links still work through current names, aliases, or a unique long prefix.
   Unknown or ambiguous links receive an error instead of creating orphan RSVPs.
 - Responses and the Guest List use invitation IDs, including after row movements
@@ -55,6 +66,7 @@ Run from this repository with Node.js:
 ```text
 node tests/rsvp-backend.test.js
 node tests/rsvp-reliability.test.js
+node tests/rsvp-upgrade.test.js
 node tests/mobile-forms.test.js
 ```
 
@@ -62,3 +74,7 @@ The tests use in-memory Sheets. Browser checks also used a local simulated
 backend, including declines, retries, lost POST replies, draft recovery,
 attendance changes, per-guest diet/dinner choices, and accommodation confirmation.
 No test answers are submitted to the live Google Sheet.
+
+Upgrade checks verify preservation of existing responses and custom columns,
+repeat runs, a failure midway through adding columns followed by a successful
+retry, rejection of a changed layout before writes, and flushing before unlock.
